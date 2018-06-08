@@ -1,12 +1,7 @@
-TEMPLATE = app
-
-QT += widgets
-
+HEADERS += hellovulkanwindow.h
+SOURCES += hellovulkanwindow.cpp main.cpp
 FORMS += mainwindow.ui
-SOURCES += main.cpp
 
-MOC_DIR = build
-OBJECTS_DIR = build
-UI_DIR = build
-
-DESTDIR = build
+# install
+target.path = build
+INSTALLS += target

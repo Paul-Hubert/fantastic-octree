@@ -12,10 +12,10 @@ MAKEFILE      = Makefile
 
 CC            = gcc
 CXX           = g++
-DEFINES       = -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -fno-plt -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -O2 -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -fno-plt -Wall -W -D_REENTRANT -fPIC $(DEFINES)
-INCPATH       = -I../../fantastic-octree -I. -isystem /usr/include/qt -isystem /usr/include/qt/QtWidgets -isystem /usr/include/qt/QtGui -isystem /usr/include/qt/QtCore -Ibuild -isystem /usr/include/libdrm -Ibuild -I/usr/lib/qt/mkspecs/linux-g++
+INCPATH       = -I../../fantastic-octree -I. -isystem /usr/include/qt -isystem /usr/include/qt/QtGui -isystem /usr/include/qt/QtCore -I. -isystem /usr/include/libdrm -I/usr/lib/qt/mkspecs/linux-g++
 QMAKE         = /usr/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -35,10 +35,10 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = fantastic_octree1.0.0
-DISTDIR = /home/paulhubert/projects/fantastic-octree/build/build/fantastic_octree1.0.0
+DISTDIR = /home/paulhubert/projects/fantastic-octree/build/.tmp/fantastic_octree1.0.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
-LIBS          = $(SUBLIBS) -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread 
+LIBS          = $(SUBLIBS) -lQt5Gui -lQt5Core -lGL -lpthread 
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -46,14 +46,14 @@ STRIP         = strip
 
 ####### Output directory
 
-OBJECTS_DIR   = build/
+OBJECTS_DIR   = ./
 
 ####### Files
 
 SOURCES       = ../hellovulkanwindow.cpp \
 		../main.cpp 
-OBJECTS       = build/hellovulkanwindow.o \
-		build/main.o
+OBJECTS       = hellovulkanwindow.o \
+		main.o
 DIST          = /usr/lib/qt/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt/mkspecs/common/unix.conf \
 		/usr/lib/qt/mkspecs/common/linux.conf \
@@ -252,7 +252,6 @@ DIST          = /usr/lib/qt/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt/mkspecs/features/resources.prf \
 		/usr/lib/qt/mkspecs/features/moc.prf \
 		/usr/lib/qt/mkspecs/features/unix/opengl.prf \
-		/usr/lib/qt/mkspecs/features/uic.prf \
 		/usr/lib/qt/mkspecs/features/unix/thread.prf \
 		/usr/lib/qt/mkspecs/features/qmake_use.prf \
 		/usr/lib/qt/mkspecs/features/file_copies.prf \
@@ -270,7 +269,7 @@ TARGET        = fantastic_octree
 first: all
 ####### Build rules
 
-$(TARGET): build/ui_mainwindow.h $(OBJECTS)  
+$(TARGET):  $(OBJECTS)  
 	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
 
 Makefile: ../fantastic_octree.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/lib/qt/mkspecs/features/spec_pre.prf \
@@ -471,7 +470,6 @@ Makefile: ../fantastic_octree.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/
 		/usr/lib/qt/mkspecs/features/resources.prf \
 		/usr/lib/qt/mkspecs/features/moc.prf \
 		/usr/lib/qt/mkspecs/features/unix/opengl.prf \
-		/usr/lib/qt/mkspecs/features/uic.prf \
 		/usr/lib/qt/mkspecs/features/unix/thread.prf \
 		/usr/lib/qt/mkspecs/features/qmake_use.prf \
 		/usr/lib/qt/mkspecs/features/file_copies.prf \
@@ -480,7 +478,6 @@ Makefile: ../fantastic_octree.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/
 		/usr/lib/qt/mkspecs/features/yacc.prf \
 		/usr/lib/qt/mkspecs/features/lex.prf \
 		../fantastic_octree.pro \
-		/usr/lib/libQt5Widgets.prl \
 		/usr/lib/libQt5Gui.prl \
 		/usr/lib/libQt5Core.prl
 	$(QMAKE) -o Makefile ../fantastic_octree.pro
@@ -682,7 +679,6 @@ Makefile: ../fantastic_octree.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/
 /usr/lib/qt/mkspecs/features/resources.prf:
 /usr/lib/qt/mkspecs/features/moc.prf:
 /usr/lib/qt/mkspecs/features/unix/opengl.prf:
-/usr/lib/qt/mkspecs/features/uic.prf:
 /usr/lib/qt/mkspecs/features/unix/thread.prf:
 /usr/lib/qt/mkspecs/features/qmake_use.prf:
 /usr/lib/qt/mkspecs/features/file_copies.prf:
@@ -691,7 +687,6 @@ Makefile: ../fantastic_octree.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/
 /usr/lib/qt/mkspecs/features/yacc.prf:
 /usr/lib/qt/mkspecs/features/lex.prf:
 ../fantastic_octree.pro:
-/usr/lib/libQt5Widgets.prl:
 /usr/lib/libQt5Gui.prl:
 /usr/lib/libQt5Core.prl:
 qmake: FORCE
@@ -711,7 +706,6 @@ distdir: FORCE
 	$(COPY_FILE) --parents /usr/lib/qt/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ../hellovulkanwindow.h $(DISTDIR)/
 	$(COPY_FILE) --parents ../hellovulkanwindow.cpp ../main.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../mainwindow.ui $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -737,11 +731,11 @@ benchmark: first
 
 compiler_rcc_make_all:
 compiler_rcc_clean:
-compiler_moc_predefs_make_all: build/moc_predefs.h
+compiler_moc_predefs_make_all: moc_predefs.h
 compiler_moc_predefs_clean:
-	-$(DEL_FILE) build/moc_predefs.h
-build/moc_predefs.h: /usr/lib/qt/mkspecs/features/data/dummy.cpp
-	g++ -pipe -O2 -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -fno-plt -Wall -W -dM -E -o build/moc_predefs.h /usr/lib/qt/mkspecs/features/data/dummy.cpp
+	-$(DEL_FILE) moc_predefs.h
+moc_predefs.h: /usr/lib/qt/mkspecs/features/data/dummy.cpp
+	g++ -pipe -O2 -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -fno-plt -Wall -W -dM -E -o moc_predefs.h /usr/lib/qt/mkspecs/features/data/dummy.cpp
 
 compiler_moc_header_make_all:
 compiler_moc_header_clean:
@@ -749,28 +743,21 @@ compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
-compiler_uic_make_all: build/ui_mainwindow.h
-compiler_uic_clean:
-	-$(DEL_FILE) build/ui_mainwindow.h
-build/ui_mainwindow.h: ../mainwindow.ui \
-		/usr/bin/uic
-	/usr/bin/uic ../mainwindow.ui -o build/ui_mainwindow.h
-
 compiler_yacc_decl_make_all:
 compiler_yacc_decl_clean:
 compiler_yacc_impl_make_all:
 compiler_yacc_impl_clean:
 compiler_lex_make_all:
 compiler_lex_clean:
-compiler_clean: compiler_moc_predefs_clean compiler_uic_clean 
+compiler_clean: compiler_moc_predefs_clean 
 
 ####### Compile
 
-build/hellovulkanwindow.o: ../hellovulkanwindow.cpp ../hellovulkanwindow.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/hellovulkanwindow.o ../hellovulkanwindow.cpp
+hellovulkanwindow.o: ../hellovulkanwindow.cpp ../hellovulkanwindow.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o hellovulkanwindow.o ../hellovulkanwindow.cpp
 
-build/main.o: ../main.cpp ../hellovulkanwindow.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/main.o ../main.cpp
+main.o: ../main.cpp ../hellovulkanwindow.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../main.cpp
 
 ####### Install
 

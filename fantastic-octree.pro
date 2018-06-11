@@ -1,6 +1,5 @@
-HEADERS += hellovulkanwindow.h
-SOURCES += hellovulkanwindow.cpp main.cpp
-FORMS += mainwindow.ui
+SOURCES = $$files(*.cpp, true)
+HEADERS = $$files(*.h, true)
 
 # install
 target.path = build

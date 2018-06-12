@@ -1,7 +1,7 @@
-#include <QWindow>
 #include <QVulkanInstance>
 #include <QLoggingCategory>
 #include <QGuiApplication>
+#include "windu.h"
 
 Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
 
@@ -28,13 +28,13 @@ int main(int argc, char *argv[])
 
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
-
-    QWindow window;
     
-    VkSurfaceKHR surface = QVulkanInstance::surfaceForWindow(&window);
-    window.setVulkanInstance(&inst);
-    window.resize(1024, 768);
-    window.show();
+    Windu win;
+    
+    VkSurfaceKHR surface = QVulkanInstance::surfaceForWindow(&win);
+    win.setVulkanInstance(&inst);
+    win.resize(1024, 768);
+    win.show();
 
     return app.exec();
 }

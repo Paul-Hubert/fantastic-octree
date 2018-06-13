@@ -9,11 +9,7 @@ int main(int argc, char *argv[]) {
 
     QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
 
-    
-    
     Windu win;
-    
-    
 
     return app.exec();
 }

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <QResizeEvent>
 
-Windu::Windu() : QWindow(), inst(), size(1024, 768) {
+Windu::Windu() : size(1024, 768) {
 
 #ifndef Q_OS_ANDROID
     inst.setLayers(QByteArrayList() << "VK_LAYER_LUNARG_standard_validation");
@@ -19,17 +19,30 @@ Windu::Windu() : QWindow(), inst(), size(1024, 768) {
 
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
+    vki = inst.functions();
     
+    device.init(inst);
+    
+    start();
+}
+
+Windu::~Windu() {
+    printf("Destroying");
+}
+
+void Windu::start() {
     surface = QVulkanInstance::surfaceForWindow(this);
     setVulkanInstance(&inst);
     resize(size);
     show();
 }
 
-Windu::~Windu() {
-    
-}
-
 void Windu::resizeEvent(QResizeEvent *ev) {
     size = ev->size();
+}
+
+void Windu::keyPressEvent(QKeyEvent *ev) {
+    if(ev->key() == Qt::Key_Escape) {
+        this->destroy();
+    }
 }

@@ -1,3 +1,4 @@
+#pragma once
 #include <QWindow>
 #include <QVulkanInstance>
 #include <QVulkanFunctions>

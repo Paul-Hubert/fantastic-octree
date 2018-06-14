@@ -1,4 +1,6 @@
-#include "windu.h"
+#pragma once
+#include <QVulkanInstance>
+class Windu;
 
 class Swapchain {
 public :

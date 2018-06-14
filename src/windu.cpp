@@ -19,15 +19,11 @@ Windu::Windu() : size(1024, 768) {
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
     
-    setVulkanInstance(&inst);
+    
     
     vki = inst.functions();
     device.init(inst);
-    
-    resize(size);
-    
-    swap.init(this);
-
+    vkd = inst.deviceFunctions(device.logical);
 }
 
 Windu::~Windu() {
@@ -35,7 +31,12 @@ Windu::~Windu() {
 }
 
 void Windu::start() {
+    resize(size);
+    
     show();
+    
+    swap.init(this);
+
 }
 
 void Windu::resizeEvent(QResizeEvent *ev) {

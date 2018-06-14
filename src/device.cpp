@@ -1,6 +1,7 @@
 #include "device.h"
 #include <QVulkanFunctions>
 #include "helper.h"
+#include <iostream>
 
 void Device::init(QVulkanInstance &inst) {
     
@@ -12,20 +13,23 @@ void Device::init(QVulkanInstance &inst) {
     vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, nullptr);
     assert(num > 0);
     std::vector<VkPhysicalDevice> p_devices(num);
-    vkAssert(vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, p_devices.data()));
+    vkAssert(vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
     
+    // Rate each device and pick the first best in the list, if its score is > 0
     uint32_t index = 1000, max = 0;
     for(uint32_t i = 0; i<num; i++) {
         uint32_t score = getScore(inst, p_devices[i]);
-        if(score > max) {
+        if(score > max) { // Takes only a score higher than the last (implicitely higher than 0)
             max = score;
             index = i;
         }
     }
     
-    assert(index != 1000);
+    assert(index != 1000); // if no suitable device is found just take down the whole place
     physical =  p_devices[index]; // Found physical device
     
+    
+    // Get device properties
     vk->vkGetPhysicalDeviceProperties(physical, &properties);
     
     vk->vkGetPhysicalDeviceFeatures(physical, &features);
@@ -41,12 +45,17 @@ void Device::init(QVulkanInstance &inst) {
     extensions.resize(count);
     vk->vkEnumerateDeviceExtensionProperties(physical, nullptr, &count, extensions.data());
     
+    
+    
+    // Prepare queue choice data : GRAPHICS / COMPUTE / TRANSFER
     uint32_t g_i = 0, g_j = 0, c_i = 0, c_j = 0, t_i = 0, t_j = 0, countF = 0;
     
     std::vector<float> priorities(3); priorities[0] = 0.0f; priorities[1] = 0.0f; priorities[2] = 0.0f; 
     
     std::vector<VkDeviceQueueCreateInfo> pqinfo(3); // Number of queues
     
+    
+    // Gets the first available queue family that supports graphics
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
         if(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             g_i = i;
@@ -61,6 +70,8 @@ void Device::init(QVulkanInstance &inst) {
         }
     }
     
+    
+    // Gets a compute queue family different from graphics family if possible, then different queue index if possible, else just the same queue.    
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
         if(queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             c_i = i;
@@ -78,9 +89,11 @@ void Device::init(QVulkanInstance &inst) {
         }
     }
     
-    if(c_i == g_i && c_j != g_j) pqinfo[0].queueCount++;
+    if(c_i == g_i && c_j != g_j) pqinfo[0].queueCount++; // If the same queue family but different queue index, create one more queue from the queue family.
     
-    for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
+    
+    // Gets a transfer queue family different from graphics and compute family if possible, then different queue index if possible, else just the same queue.
+    for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) { 
         t_i = i;
         if(t_i != g_i && t_i != c_i) {
             countF++;
@@ -98,16 +111,22 @@ void Device::init(QVulkanInstance &inst) {
     if(t_i == g_i && t_j != g_j) {pqinfo[0].queueCount++;}
     else if(c_i == t_i && c_j != t_j) {pqinfo[1].queueCount++;}
     
+    
+    
+    // Create Device
+    
     VkPhysicalDeviceFeatures enabledFeatures = {};
+    enabledFeatures.geometryShader = true;
     // HERE : enable needed features (if present in 'features')
     
     std::vector<const char*> extensions = {};
     extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    // HERE : enable needed extensions (if present in 'extensions')
     
     VkDeviceCreateInfo deviceInfo = {};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceInfo.queueCreateInfoCount = countF; // Number of queue families involved.
-    deviceInfo.pQueueCreateInfos = pqinfo.data();
+    deviceInfo.pQueueCreateInfos = pqinfo.data(); // Number of queues per queue family (and other data)
     deviceInfo.pEnabledFeatures = &enabledFeatures;
     deviceInfo.enabledExtensionCount = (uint32_t) extensions.size();
     deviceInfo.ppEnabledExtensionNames = extensions.data();
@@ -132,7 +151,20 @@ void Device::init(QVulkanInstance &inst) {
 }
 
 uint32_t Device::getScore(QVulkanInstance &inst, VkPhysicalDevice &device) {
-    return 1;
+    // Get device properties
+    uint32_t score = 0;
+    inst.functions()->vkGetPhysicalDeviceProperties(device, &properties);
+    inst.functions()->vkGetPhysicalDeviceFeatures(device, &features);
+    uint32_t numberOfQueueFamilies;
+    inst.functions()->vkGetPhysicalDeviceQueueFamilyProperties(device, &numberOfQueueFamilies, nullptr);
+    
+    if(features.geometryShader) score++; // supports geometry shaders
+    if(properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score++; // is a dedicated graphics card
+    if(numberOfQueueFamilies > 1) score ++; // has more than one queue family
+    
+    if(numberOfQueueFamilies < 1) score = 0; // doesn't have any queues
+    std::cout << properties.deviceName << " : " << score << "\n";
+    return score;
 }
 
 bool Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, uint32_t *index) {

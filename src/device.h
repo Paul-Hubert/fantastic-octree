@@ -14,6 +14,9 @@ public :
     VkQueue transfer;
     QVulkanInstance *instance;
     
+    VkPhysicalDeviceFeatures requiredFeatures;
+    std::vector<const char*> requiredExtensions;
+    
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
     VkPhysicalDeviceMemoryProperties memoryProperties;

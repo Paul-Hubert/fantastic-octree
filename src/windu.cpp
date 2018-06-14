@@ -18,17 +18,14 @@ Windu::Windu() : size(1024, 768) {
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
     
-    
-    
     setVulkanInstance(&inst);
-    surface = inst.surfaceForWindow(this);
-    resize(size);
     
     vki = inst.functions();
-    
-    
-    
     device.init(inst);
+    
+    resize(size);
+    
+    swap.init(this);
     
     start();
 }

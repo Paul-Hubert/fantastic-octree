@@ -1,3 +1,6 @@
 build
 .qmake.stash
+Makefile
 .kdev4
+nbproject
+fantastic-octree

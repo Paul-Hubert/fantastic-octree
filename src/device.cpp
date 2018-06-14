@@ -4,6 +4,8 @@
 
 void Device::init(QVulkanInstance &inst) {
     
+    instance = &inst;
+    
     QVulkanFunctions *vk = inst.functions();
     
     uint32_t num;
@@ -144,4 +146,8 @@ bool Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, 
         typeBits >>= 1;
     }
     return true;
+}
+
+Device::~Device() {
+    instance->deviceFunctions(logical)->vkDestroyDevice(logical, nullptr);
 }

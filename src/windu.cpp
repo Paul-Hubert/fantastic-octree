@@ -27,8 +27,7 @@ Windu::Windu() : size(1024, 768) {
     resize(size);
     
     swap.init(this);
-    
-    start();
+
 }
 
 Windu::~Windu() {
@@ -36,7 +35,6 @@ Windu::~Windu() {
 }
 
 void Windu::start() {
-    
     show();
 }
 

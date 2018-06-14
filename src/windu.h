@@ -1,8 +1,10 @@
 #pragma once
+
 #include <QWindow>
 #include <QVulkanInstance>
 #include <QVulkanFunctions>
 #include <QVulkanDeviceFunctions>
+
 #include "device.h"
 #include "swapchain.h"
 

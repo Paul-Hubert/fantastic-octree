@@ -1,5 +1,6 @@
 #include <QLoggingCategory>
 #include <QGuiApplication>
+
 #include "windu.h"
 
 Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")

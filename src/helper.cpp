@@ -1,6 +1,6 @@
-#include "helper.h"
-
 #include <QDebug>
+
+#include "helper.h"
 
 void vkAssert(VkResult res) {
     if(res != VK_SUCCESS) {

@@ -1,5 +1,6 @@
 #include "device.h"
 #include <QVulkanFunctions>
+#include "helper.h"
 
 void Device::init(QVulkanInstance &inst) {
     
@@ -9,7 +10,7 @@ void Device::init(QVulkanInstance &inst) {
     vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, nullptr);
     assert(num > 0);
     std::vector<VkPhysicalDevice> p_devices(num);
-    vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, p_devices.data());
+    vkAssert(vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, p_devices.data()));
     
     uint32_t index = 1000, max = 0;
     for(uint32_t i = 0; i<num; i++) {
@@ -103,13 +104,28 @@ void Device::init(QVulkanInstance &inst) {
     
     VkDeviceCreateInfo deviceInfo = {};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceInfo.queueCreateInfoCount = countF;
+    deviceInfo.queueCreateInfoCount = countF; // Number of queue families involved.
     deviceInfo.pQueueCreateInfos = pqinfo.data();
     deviceInfo.pEnabledFeatures = &enabledFeatures;
     deviceInfo.enabledExtensionCount = (uint32_t) extensions.size();
     deviceInfo.ppEnabledExtensionNames = extensions.data();
     
-    vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical);
+    vkAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
+    
+    QVulkanDeviceFunctions *vkd = inst.deviceFunctions(logical);
+    vkd->vkGetDeviceQueue(logical, g_i, g_j, &graphics);
+    if(c_i == g_i && c_j == g_j) {
+        compute = graphics;
+    } else {
+        vkd->vkGetDeviceQueue(logical, c_i, c_j, &compute);
+    }
+    if(t_i == g_i && t_j == g_j) {
+        transfer = graphics;
+    } else if(t_i == c_i && t_j ==c_j) {
+        transfer = compute;
+    } else {
+        vkd->vkGetDeviceQueue(logical, t_i, t_j, &transfer);
+    }
     
 }
 
@@ -128,12 +144,4 @@ bool Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, 
         typeBits >>= 1;
     }
     return true;
-}
-
-VkDevice Device::operator ~() {
-    return logical;
-}
-
-VkPhysicalDevice Device::physicalDevice() {
-    return physical;
 }

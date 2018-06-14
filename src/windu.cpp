@@ -1,6 +1,7 @@
 #include "windu.h"
 #include <stdio.h>
 #include <QResizeEvent>
+#include "helper.h"
 
 Windu::Windu() : size(1024, 768) {
 

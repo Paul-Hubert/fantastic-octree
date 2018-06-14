@@ -1,8 +1,8 @@
-#include "windu.h"
-#include <vulkan/vulkan.h>
 #include <QVulkanFunctions>
-#include "helper.h"
 #include <iostream>
+
+#include "windu.h"
+#include "helper.h"
 
 void Swapchain::init(Windu *win) {
     

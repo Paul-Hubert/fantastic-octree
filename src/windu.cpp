@@ -1,8 +1,9 @@
-#include "windu.h"
 #include <stdio.h>
 #include <QResizeEvent>
-#include "helper.h"
 #include <iostream>
+
+#include "windu.h"
+#include "helper.h"
 
 Windu::Windu() : size(1024, 768) {
     
@@ -26,8 +27,7 @@ Windu::Windu() : size(1024, 768) {
     resize(size);
     
     swap.init(this);
-    
-    start();
+
 }
 
 Windu::~Windu() {
@@ -35,7 +35,6 @@ Windu::~Windu() {
 }
 
 void Windu::start() {
-    
     show();
 }
 

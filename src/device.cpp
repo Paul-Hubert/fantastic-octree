@@ -1,9 +1,10 @@
-#include "device.h"
 #include <QVulkanFunctions>
-#include "helper.h"
 #include <iostream>
 #include <set>
 #include <string>
+
+#include "device.h"
+#include "helper.h"
 
 void Device::init(QVulkanInstance &inst) {
     

@@ -5,7 +5,7 @@
 #include <iostream>
 
 Windu::Windu() : size(1024, 768) {
-
+    
     inst.setLayers(QByteArrayList()
                    << "VK_LAYER_GOOGLE_threading"
                    << "VK_LAYER_LUNARG_parameter_validation"

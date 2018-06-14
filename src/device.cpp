@@ -84,7 +84,7 @@ void Device::init(QVulkanInstance &inst) {
     // Gets a compute queue family different from graphics family if possible, then different queue index if possible, else just the same queue.    
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
         if(queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-            c_i = i;
+            c_i = i; c_j = 0;
             if(c_i != g_i) {
                 countF++;
                 VkDeviceQueueCreateInfo qinfo = {};
@@ -104,7 +104,7 @@ void Device::init(QVulkanInstance &inst) {
     
     // Gets a transfer queue family different from graphics and compute family if possible, then different queue index if possible, else just the same queue.
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) { 
-        t_i = i;
+        t_i = i; t_j = 0;
         if(t_i != g_i && t_i != c_i) {
             countF++;
             VkDeviceQueueCreateInfo qinfo = {};
@@ -115,7 +115,7 @@ void Device::init(QVulkanInstance &inst) {
             pqinfo[2] = qinfo;
             break;
         }
-        while((t_j == g_j || t_j == c_j) && queueFamilies[i].queueCount > t_j + 1) t_j++;
+        while(((t_i == g_i && t_j == g_j) || (t_i == c_i && t_j == c_j)) && queueFamilies[i].queueCount > t_j + 1) t_j++;
     }
     
     if(t_i == g_i && t_j != g_j) {pqinfo[0].queueCount++;}
@@ -141,11 +141,13 @@ void Device::init(QVulkanInstance &inst) {
     
     QVulkanDeviceFunctions *vkd = inst.deviceFunctions(logical);
     vkd->vkGetDeviceQueue(logical, g_i, g_j, &graphics);
+    
     if(c_i == g_i && c_j == g_j) {
         compute = graphics;
     } else {
         vkd->vkGetDeviceQueue(logical, c_i, c_j, &compute);
     }
+    
     if(t_i == g_i && t_j == g_j) {
         transfer = graphics;
     } else if(t_i == c_i && t_j ==c_j) {
@@ -159,7 +161,7 @@ void Device::init(QVulkanInstance &inst) {
 uint32_t Device::getScore(QVulkanInstance &inst, VkPhysicalDevice &device) {
     // Get device properties
     
-    uint32_t score = 0;
+    uint32_t score = 1;
     inst.functions()->vkGetPhysicalDeviceProperties(device, &properties);
     inst.functions()->vkGetPhysicalDeviceFeatures(device, &features);
     uint32_t numberOfQueueFamilies;

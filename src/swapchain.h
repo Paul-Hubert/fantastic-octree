@@ -1,5 +1,5 @@
 #pragma once
-#include <QVulkanInstance>
+#include <vulkan/vulkan.h>
 class Windu;
 
 class Swapchain {

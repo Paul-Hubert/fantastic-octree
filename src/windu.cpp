@@ -14,7 +14,7 @@ Windu::Windu() : size(1024, 768) {
                    << "VK_LAYER_LUNARG_image"
                    << "VK_LAYER_LUNARG_swapchain"
                    << "VK_LAYER_GOOGLE_unique_objects");
-
+    
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
     

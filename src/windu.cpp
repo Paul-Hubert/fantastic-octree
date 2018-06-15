@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <QResizeEvent>
 #include <iostream>
+#include <QSurface>
 
 #include "windu.h"
 #include "helper.h"
 
-Windu::Windu() : size(1024, 768) {
+Windu::Windu() : device(this), swap(this), size(1024, 768) {
+    
+    setSurfaceType(SurfaceType::VulkanSurface);
     
     inst.setLayers(QByteArrayList()
                    << "VK_LAYER_GOOGLE_threading"
@@ -19,11 +22,11 @@ Windu::Windu() : size(1024, 768) {
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
     
+    setVulkanInstance(&inst);
+    
+    resize(size);
     
     
-    vki = inst.functions();
-    device.init(inst);
-    vkd = inst.deviceFunctions(device.logical);
 }
 
 Windu::~Windu() {
@@ -31,12 +34,34 @@ Windu::~Windu() {
 }
 
 void Windu::start() {
-    resize(size);
     
-    show();
+    swap.getSurface();
     
-    swap.init(this);
+    if(!loaded) {
+        vki = inst.functions();
+        device.init();
+        vkd = inst.deviceFunctions(device.logical);
+    }
+    
+    swap.init();
+    
+    loaded = true;
+}
 
+void Windu::reset() {
+    
+}
+
+void Windu::render() {
+    
+}
+
+void Windu::exposeEvent(QExposeEvent *) {
+    if (isExposed()) {
+        start();
+    } else {
+        reset();
+    }
 }
 
 void Windu::resizeEvent(QResizeEvent *ev) {
@@ -47,4 +72,24 @@ void Windu::keyPressEvent(QKeyEvent *ev) {
     if(ev->key() == Qt::Key_Escape) {
         this->destroy();
     }
+}
+
+bool Windu::event(QEvent *e) {
+    switch (e->type()) {
+        case QEvent::UpdateRequest:
+            render();
+            break;
+        // The swapchain must be destroyed before the surface as per spec. This is
+        // not ideal for us because the surface is managed by the QPlatformWindow
+        // which may be gone already when the unexpose comes, making the validation
+        // layer scream. The solution is to listen to the PlatformSurface events.
+        case QEvent::PlatformSurface:
+            if (static_cast<QPlatformSurfaceEvent *>(e)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+                swap.reset();
+            }
+            break;
+        default:
+            break;
+    }
+    return QWindow::event(e);
 }

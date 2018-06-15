@@ -1,14 +1,19 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <QVulkanInstance>
 
 class Windu;
 
 class Swapchain {
 public :
-    void init(Windu *win);
+    Swapchain(Windu *win);
+    void init();
     ~Swapchain();
+    void getSurface();
+    void reset();
     uint32_t NUM_FRAMES = 2;
+    
+    Windu *win;
     
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;

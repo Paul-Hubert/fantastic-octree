@@ -1,29 +1,51 @@
 #include <QVulkanFunctions>
 #include <iostream>
+#include "vulkan/vulkan.h"
 
 #include "windu.h"
 #include "helper.h"
 
-void Swapchain::init(Windu *win) {
+Swapchain::Swapchain(Windu *win) {
+    this->win = win;
+}
+
+void Swapchain::init() {
     
-    surface = QVulkanInstance::surfaceForWindow(win);
-    if(surface == nullptr) printf("fuck you world\n");
     
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR =
-    (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR"));
+    if(vkGetPhysicalDeviceSurfaceCapabilitiesKHR == nullptr) qDebug("nope");
     
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR =
-    (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR) win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR");
-    if(vkGetPhysicalDeviceSurfaceFormatsKHR != nullptr) {
-        uint32_t num;
-        //vkGetPhysicalDeviceSurfaceFormatsKHR(win->device.physical, surface, &num, nullptr);
-        //std::cout << capabilities.currentExtent.width;
-    }
+    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceFormatsKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR"));
+    if(vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) qDebug("nope");
     
     PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR =
-    (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR) win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfacePresentModesKHR");
+    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfacePresentModesKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfacePresentModesKHR"));
+    if(vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) qDebug("nope");
+    
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(win->device.physical, surface, &capabilities);
+    
+    uint32_t num;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(win->device.physical, surface, &num, nullptr);
+    formats.resize(num);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(win->device.physical, surface, &num, formats.data());
+    
+    vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, nullptr);
+    presentModes.resize(num);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, presentModes.data());
     
     
+    
+}
+
+void Swapchain::reset() {
+    
+}
+
+void Swapchain::getSurface() {
+    surface = win->inst.surfaceForWindow(win);
+    if(surface == nullptr) qDebug("hey your surface didn't work");
 }
 
 Swapchain::~Swapchain() {

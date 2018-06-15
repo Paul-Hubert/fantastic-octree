@@ -4,9 +4,16 @@
 #include <string>
 
 #include "device.h"
+#include "windu.h"
 #include "helper.h"
 
-void Device::init(QVulkanInstance &inst) {
+Device::Device(Windu *win) {
+    this->win = win;
+}
+
+void Device::init() {
+    
+    QVulkanInstance *inst = &(win->inst);
     
     requiredFeatures = {};
     requiredFeatures.geometryShader = true;
@@ -16,15 +23,13 @@ void Device::init(QVulkanInstance &inst) {
     requiredExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     // HERE : enable needed extensions (if present in 'extensions')
     
-    instance = &inst;
-    
-    QVulkanFunctions *vk = inst.functions();
+    QVulkanFunctions *vk = inst->functions();
     
     uint32_t num;
-    vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, nullptr);
+    vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, nullptr);
     assert(num > 0);
     std::vector<VkPhysicalDevice> p_devices(num);
-    vkAssert(vk->vkEnumeratePhysicalDevices(inst.vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
+    vkAssert(vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
     
     // Rate each device and pick the first best in the list, if its score is > 0
     uint32_t index = 1000, max = 0;
@@ -68,7 +73,7 @@ void Device::init(QVulkanInstance &inst) {
     
     // Gets the first available queue family that supports graphics
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
-        if(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && inst->supportsPresent(physical, i, win)) {
             g_i = i;
             countF++;
             VkDeviceQueueCreateInfo qinfo = {};
@@ -140,7 +145,7 @@ void Device::init(QVulkanInstance &inst) {
     
     vkAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
     
-    QVulkanDeviceFunctions *vkd = inst.deviceFunctions(logical);
+    QVulkanDeviceFunctions *vkd = inst->deviceFunctions(logical);
     vkd->vkGetDeviceQueue(logical, g_i, g_j, &graphics);
     
     if(c_i == g_i && c_j == g_j) {
@@ -159,18 +164,18 @@ void Device::init(QVulkanInstance &inst) {
     
 }
 
-uint32_t Device::getScore(QVulkanInstance &inst, VkPhysicalDevice &device) {
+uint32_t Device::getScore(QVulkanInstance *inst, VkPhysicalDevice &device) {
     // Get device properties
     
     uint32_t score = 1;
-    inst.functions()->vkGetPhysicalDeviceProperties(device, &properties);
-    inst.functions()->vkGetPhysicalDeviceFeatures(device, &features);
+    inst->functions()->vkGetPhysicalDeviceProperties(device, &properties);
+    inst->functions()->vkGetPhysicalDeviceFeatures(device, &features);
     uint32_t numberOfQueueFamilies;
-    inst.functions()->vkGetPhysicalDeviceQueueFamilyProperties(device, &numberOfQueueFamilies, nullptr);
+    inst->functions()->vkGetPhysicalDeviceQueueFamilyProperties(device, &numberOfQueueFamilies, nullptr);
     uint32_t count;
-    inst.functions()->vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
+    inst->functions()->vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
     extensions.resize(count);
-    inst.functions()->vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data());
+    inst->functions()->vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data());
     
     if(features.geometryShader) score++; // supports geometry shaders
     if(properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score++; // is a dedicated graphics card
@@ -201,5 +206,5 @@ bool Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, 
 }
 
 Device::~Device() {
-    instance->deviceFunctions(logical)->vkDestroyDevice(logical, nullptr);
+    win->inst.deviceFunctions(logical)->vkDestroyDevice(logical, nullptr);
 }

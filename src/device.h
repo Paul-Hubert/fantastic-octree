@@ -1,18 +1,23 @@
+#pragma once
 #include <QVulkanInstance>
+
+class Windu;
 
 class Device {
 public :
-    void init(QVulkanInstance &inst);
+    Device(Windu *win);
+    void init();
     ~Device();
-    uint32_t getScore(QVulkanInstance &inst, VkPhysicalDevice &device);
+    uint32_t getScore(QVulkanInstance *inst, VkPhysicalDevice &device);
     bool getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, uint32_t *index);
+    
+    Windu *win;
     
     VkPhysicalDevice physical;
     VkDevice logical;
     VkQueue graphics;
     VkQueue compute;
     VkQueue transfer;
-    QVulkanInstance *instance;
     
     VkPhysicalDeviceFeatures requiredFeatures;
     std::vector<const char*> requiredExtensions;

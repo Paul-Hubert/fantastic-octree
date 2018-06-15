@@ -12,9 +12,7 @@ int main(int argc, char *argv[]) {
     
     Windu win;
     
-    win.start();
-    VkSurfaceKHR surf = QVulkanInstance::surfaceForWindow(&win);
-    if(surf == nullptr) printf("fuck you world\n");
+    win.show();
 
     return app.exec();
 }

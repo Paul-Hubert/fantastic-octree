@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WINDU_H
+#define WINDU_H
 
 #include <QWindow>
 #include <QVulkanInstance>
@@ -36,3 +37,5 @@ private :
     QSize size;
     bool loaded = false;
 };
+
+#endif

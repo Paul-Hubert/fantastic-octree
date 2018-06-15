@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DEVICE_H
+#define DEVICE_H
+
 #include <QVulkanInstance>
 
 class Windu;
@@ -28,3 +30,5 @@ public :
     std::vector<VkQueueFamilyProperties> queueFamilies;
     std::vector<VkExtensionProperties> extensions;
 };
+
+#endif

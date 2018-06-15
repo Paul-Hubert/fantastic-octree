@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SWAPCHAIN_H
+#define SWAPCHAIN_H
 
 #include <QVulkanInstance>
 
@@ -21,3 +22,5 @@ public :
     
     VkSurfaceKHR surface;
 };
+
+#endif

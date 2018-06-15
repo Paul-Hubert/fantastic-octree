@@ -1,6 +1,6 @@
 #include <QVulkanFunctions>
 #include <iostream>
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 #include "windu.h"
 #include "helper.h"
@@ -94,7 +94,7 @@ void Swapchain::reset() {
 
 void Swapchain::getSurface() {
     surface = win->inst.surfaceForWindow(win);
-    if(surface == nullptr) qDebug("hey your surface didn't work");
+    if(surface == VK_NULL_HANDLE) qDebug("hey your surface didn't work");
 }
 
 VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace) {

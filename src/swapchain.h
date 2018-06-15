@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SWAPCHAIN_H
+#define SWAPCHAIN_H
 
 #include <QVulkanInstance>
 
@@ -27,3 +28,5 @@ private :
     VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> &presentModes, VkPresentModeKHR wantedMode);
     VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR &capabilities);
 };
+
+#endif

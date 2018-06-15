@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WINDU_H
+#define WINDU_H
 
 #include <QWindow>
 #include <QVulkanInstance>
@@ -39,3 +40,5 @@ private :
     
     bool loaded = false;
 };
+
+#endif

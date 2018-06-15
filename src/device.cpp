@@ -2,6 +2,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <QMessageLogger>
 
 #include "device.h"
 #include "windu.h"
@@ -41,7 +42,11 @@ void Device::init() {
         }
     }
     
-    assert(index != 1000); // if no suitable device is found just take down the whole place
+    if(index == 1000) {  // if no suitable device is found just take down the whole place
+        qCritical() << "No suitable vulkan device found. Please check your driver and hardware." << endl;
+        exit(1);
+    }
+    
     physical =  p_devices[index]; // Found physical device
     
     

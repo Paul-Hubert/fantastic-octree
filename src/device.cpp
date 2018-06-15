@@ -64,7 +64,7 @@ void Device::init() {
     
     
     // Prepare queue choice data : GRAPHICS / COMPUTE / TRANSFER
-    uint32_t g_i = 0, g_j = 0, c_i = 0, c_j = 0, t_i = 0, t_j = 0, countF = 0;
+    uint32_t g_j = 0, c_j = 0, t_j = 0, countF = 0;
     
     std::vector<float> priorities(3); priorities[0] = 0.0f; priorities[1] = 0.0f; priorities[2] = 0.0f; 
     

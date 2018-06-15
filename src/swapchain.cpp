@@ -4,6 +4,7 @@
 
 #include "windu.h"
 #include "helper.h"
+#include "loader.inl"
 
 Swapchain::Swapchain(Windu *win) {
     this->win = win;
@@ -11,18 +12,13 @@ Swapchain::Swapchain(Windu *win) {
 
 void Swapchain::init() {
     
+    INST_LOAD(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+    INST_LOAD(vkGetPhysicalDeviceSurfaceFormatsKHR)
+    INST_LOAD(vkGetPhysicalDeviceSurfacePresentModesKHR)
     
-    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR =
-    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR"));
-    if(vkGetPhysicalDeviceSurfaceCapabilitiesKHR == nullptr) qDebug("nope");
-    
-    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR =
-    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceFormatsKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR"));
-    if(vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) qDebug("nope");
-    
-    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR =
-    reinterpret_cast<PFN_vkGetPhysicalDeviceSurfacePresentModesKHR> (win->inst.getInstanceProcAddr("vkGetPhysicalDeviceSurfacePresentModesKHR"));
-    if(vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) qDebug("nope");
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
     
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(win->device.physical, surface, &capabilities);
     
@@ -35,17 +31,108 @@ void Swapchain::init() {
     presentModes.resize(num);
     vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, presentModes.data());
     
+    VkSurfaceFormatKHR surfaceformat = chooseSwapSurfaceFormat(formats, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_FIFO_KHR);
+    extent = chooseSwapExtent(capabilities);
+    format = surfaceformat.format;
+    
+    NUM_FRAMES = std::max(capabilities.minImageCount, NUM_FRAMES);
+    if (capabilities.maxImageCount > 0 && NUM_FRAMES > capabilities.maxImageCount) {
+        NUM_FRAMES = capabilities.maxImageCount;
+    }
+    
+    VkSwapchainCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+    createInfo.minImageCount = NUM_FRAMES;
+    createInfo.imageFormat = surfaceformat.format;
+    createInfo.imageColorSpace = surfaceformat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageSharingMode = (win->device.g_i != win->device.c_i) ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    
+    createInfo.queueFamilyIndexCount = 1 + win->device.g_i == win->device.c_i;
+    uint32_t qi[createInfo.queueFamilyIndexCount];
+    qi[0] = win->device.g_i;
+    if(win->device.g_i == win->device.c_i) qi[1] = win->device.c_i;
+    createInfo.pQueueFamilyIndices = qi;
+    
+    createInfo.preTransform = capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = swapchain;
+    
+    VkSwapchainKHR newSwapchain;
+    
+    DEV_LOAD(vkCreateSwapchainKHR)
+    
+    vkAssert(vkCreateSwapchainKHR(win->device.logical, &createInfo, nullptr, &newSwapchain));
+    
+    swapchain = newSwapchain;
+    
+    DEV_LOAD(vkDestroySwapchainKHR)
+    
+    if(createInfo.oldSwapchain != VK_NULL_HANDLE) vkDestroySwapchainKHR(win->device.logical, createInfo.oldSwapchain, nullptr);
+    
+    
+    DEV_LOAD(vkGetSwapchainImagesKHR)
+    
+    vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, nullptr);
+    images.resize(num);
+    vkAssert(vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, images.data()));
     
     
 }
 
 void Swapchain::reset() {
-    
+    DEV_LOAD(vkDestroySwapchainKHR)
+    vkDestroySwapchainKHR(win->device.logical, swapchain, nullptr);
+    swapchain = VK_NULL_HANDLE;
 }
 
 void Swapchain::getSurface() {
     surface = win->inst.surfaceForWindow(win);
     if(surface == nullptr) qDebug("hey your surface didn't work");
+}
+
+VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace) {
+    if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
+        return {wantedFormat, wantedColorSpace}; // Just give the format you want
+    }
+
+    for (const auto& availableFormat : formats) {
+        if (availableFormat.format == wantedFormat && availableFormat.colorSpace == wantedColorSpace) { // Look for the wanted format
+            return availableFormat;
+        }
+    }
+
+    return formats[0];
+}
+
+VkPresentModeKHR Swapchain::chooseSwapPresentMode(std::vector<VkPresentModeKHR> &presentModes, VkPresentModeKHR wantedMode) {
+
+    for (const auto& availablePresentMode : presentModes) {
+        if (availablePresentMode == wantedMode) {
+            return availablePresentMode;
+        }
+    }
+
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D Swapchain::chooseSwapExtent(VkSurfaceCapabilitiesKHR &capabilities) {
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        return capabilities.currentExtent;
+    } else {
+        VkExtent2D actualExtent = {(uint32_t) win->size.rwidth(), (uint32_t) win->size.rheight()};
+
+        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+
+        return actualExtent;
+    }
 }
 
 Swapchain::~Swapchain() {

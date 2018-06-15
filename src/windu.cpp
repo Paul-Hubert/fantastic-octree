@@ -85,6 +85,7 @@ bool Windu::event(QEvent *e) {
         // layer scream. The solution is to listen to the PlatformSurface events.
         case QEvent::PlatformSurface:
             if (static_cast<QPlatformSurfaceEvent *>(e)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+                qDebug("surface destruction");
                 swap.reset();
             }
             break;

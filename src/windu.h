@@ -22,17 +22,20 @@ public :
     void start();
     void reset();
     
+    
     QVulkanInstance inst;
     QVulkanFunctions* vki;
     QVulkanDeviceFunctions* vkd;
     Device device;
     Swapchain swap;
     
+    QSize size;
+    
 private :
     void getDevice();
     void select(VkPhysicalDevice *dev);
     int getScore(VkPhysicalDevice *dev);
     
-    QSize size;
+    
     bool loaded = false;
 };

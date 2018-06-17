@@ -35,7 +35,7 @@ void Device::init() {
     }
     
     std::vector<VkPhysicalDevice> p_devices(num);
-    vkAssert(vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
+    foAssert(vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
     
     // Rate each device and pick the first best in the list, if its score is > 0
     uint32_t index = 1000, max = 0;
@@ -172,7 +172,7 @@ void Device::init() {
     deviceInfo.enabledExtensionCount = (uint32_t) requiredExtensions.size();
     deviceInfo.ppEnabledExtensionNames = requiredExtensions.data();
     
-    vkAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
+    foAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
     
     QVulkanDeviceFunctions *vkd = inst->deviceFunctions(logical);
     vkd->vkGetDeviceQueue(logical, g_i, g_j, &graphics);

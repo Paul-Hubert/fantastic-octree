@@ -3,5 +3,5 @@
 
 #include <QVulkanInstance>
 
-void vkAssert(VkResult result);
+void foAssert(VkResult result);
 #endif

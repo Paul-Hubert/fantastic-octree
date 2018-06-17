@@ -68,7 +68,7 @@ void Swapchain::init() {
     
     DEV_LOAD(vkCreateSwapchainKHR)
     
-    vkAssert(vkCreateSwapchainKHR(win->device.logical, &createInfo, nullptr, &newSwapchain));
+    foAssert(vkCreateSwapchainKHR(win->device.logical, &createInfo, nullptr, &newSwapchain));
     
     swapchain = newSwapchain;
     
@@ -84,7 +84,7 @@ void Swapchain::init() {
     
     vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, nullptr);
     images.resize(num);
-    vkAssert(vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, images.data()));
+    foAssert(vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, images.data()));
     
     imageViews.resize(num);
     for(uint32_t i = 0; i < num; i++) {
@@ -106,7 +106,7 @@ void Swapchain::init() {
         vInfo.subresourceRange.baseArrayLayer = 0;
         vInfo.subresourceRange.layerCount = 1;
         
-        vkAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, nullptr, &imageViews[i]));
+        foAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, nullptr, &imageViews[i]));
         
     }
     

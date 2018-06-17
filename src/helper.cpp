@@ -9,4 +9,10 @@ void foAssert(VkResult res) {
     }
 }
 
+QByteArray* load(QString fileName) {
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) return nullptr;
+    return &file.readAll();
+}
+
 

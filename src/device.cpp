@@ -76,7 +76,8 @@ void Device::init() {
     std::vector<VkDeviceQueueCreateInfo> pqinfo(3); // Number of queues
     
     
-    // Gets the first available queue family that supports graphics
+    // Gets the first available queue family that supports graphics and presentation
+    g_i = 1000;
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
         if(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && inst->supportsPresent(physical, i, win)) {
             g_i = i;
@@ -90,9 +91,10 @@ void Device::init() {
             break;
         }
     }
+    assert(g_i != 1000);
     
-    
-    // Gets a compute queue family different from graphics family if possible, then different queue index if possible, else just the same queue.    
+    // Gets a compute queue family different from graphics family if possible, then different queue index if possible, else just the same queue.
+    c_i = 1000;
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) {
         if(queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             c_i = i; c_j = 0;
@@ -109,11 +111,12 @@ void Device::init() {
             while(c_j == g_j && queueFamilies[i].queueCount > c_j + 1) c_j++;
         }
     }
-    
+    assert(c_i != 1000);
     if(c_i == g_i && c_j != g_j) pqinfo[0].queueCount++; // If the same queue family but different queue index, create one more queue from the queue family.
     
     
     // Gets a transfer queue family different from graphics and compute family if possible, then different queue index if possible, else just the same queue.
+    t_i = 1000;
     for(int i = 0; i < static_cast<int>(queueFamilies.size()); i++) { 
         t_i = i; t_j = 0;
         if(t_i != g_i && t_i != c_i) {
@@ -128,7 +131,7 @@ void Device::init() {
         }
         while(((t_i == g_i && t_j == g_j) || (t_i == c_i && t_j == c_j)) && queueFamilies[i].queueCount > t_j + 1) t_j++;
     }
-    
+    assert(t_i != 1000);
     if(t_i == g_i && t_j != g_j) {pqinfo[0].queueCount++;}
     else if(c_i == t_i && c_j != t_j) {pqinfo[1].queueCount++;}
     

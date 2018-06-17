@@ -18,6 +18,7 @@ public :
     VkSurfaceKHR surface;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     std::vector<VkImage> images;
+    std::vector<VkImageView> imageViews;
     VkFormat format;
     VkExtent2D extent;
 

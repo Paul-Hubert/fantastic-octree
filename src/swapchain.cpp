@@ -72,10 +72,13 @@ void Swapchain::init() {
     
     swapchain = newSwapchain;
     
-    DEV_LOAD(vkDestroySwapchainKHR)
-    
-    if(createInfo.oldSwapchain != VK_NULL_HANDLE) vkDestroySwapchainKHR(win->device.logical, createInfo.oldSwapchain, nullptr);
-    
+    if(createInfo.oldSwapchain != VK_NULL_HANDLE) {
+        DEV_LOAD(vkDestroySwapchainKHR)
+        vkDestroySwapchainKHR(win->device.logical, createInfo.oldSwapchain, nullptr);
+        for (auto imageView : imageViews) {
+            win->vkd->vkDestroyImageView(win->device.logical, imageView, nullptr);
+        }
+    }
     
     DEV_LOAD(vkGetSwapchainImagesKHR)
     
@@ -83,13 +86,42 @@ void Swapchain::init() {
     images.resize(num);
     vkAssert(vkGetSwapchainImagesKHR(win->device.logical, swapchain, &num, images.data()));
     
+    imageViews.resize(num);
+    for(uint32_t i = 0; i < num; i++) {
+        
+        VkImageViewCreateInfo vInfo = {};
+        vInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        vInfo.image = images[i];
+        vInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        vInfo.format = format;
+        
+        vInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        vInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        vInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        vInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        
+        vInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        vInfo.subresourceRange.baseMipLevel = 0;
+        vInfo.subresourceRange.levelCount = 1;
+        vInfo.subresourceRange.baseArrayLayer = 0;
+        vInfo.subresourceRange.layerCount = 1;
+        
+        vkAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, nullptr, &imageViews[i]));
+        
+    }
     
 }
 
 void Swapchain::reset() {
+    
+    for (auto imageView : imageViews) {
+        win->vkd->vkDestroyImageView(win->device.logical, imageView, nullptr);
+    }
+    
     DEV_LOAD(vkDestroySwapchainKHR)
     vkDestroySwapchainKHR(win->device.logical, swapchain, nullptr);
     swapchain = VK_NULL_HANDLE;
+    
 }
 
 void Swapchain::getSurface() {

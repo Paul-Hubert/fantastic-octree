@@ -8,6 +8,7 @@
 
 #include "device.h"
 #include "swapchain.h"
+#include "compute.h"
 
 class Windu : public QWindow {
 public :
@@ -27,8 +28,10 @@ public :
     QVulkanInstance inst;
     QVulkanFunctions* vki;
     QVulkanDeviceFunctions* vkd;
+    
     Device device;
     Swapchain swap;
+    Compute compute;
     
     QSize size;
     

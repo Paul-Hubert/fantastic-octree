@@ -6,7 +6,7 @@
 #include "windu.h"
 #include "helper.h"
 
-Windu::Windu() : device(this), swap(this), size(1024, 768) {
+Windu::Windu() : device(this), swap(this), compute(this), size(1024, 768) {
     
     setSurfaceType(SurfaceType::VulkanSurface);
     
@@ -26,7 +26,6 @@ Windu::Windu() : device(this), swap(this), size(1024, 768) {
     
     resize(size);
     
-    
 }
 
 Windu::~Windu() {
@@ -44,6 +43,8 @@ void Windu::start() {
     }
     
     swap.init();
+    
+    compute.init();
     
     loaded = true;
 }

@@ -169,6 +169,9 @@ void Device::init() {
     
 }
 
+    
+
+
 uint32_t Device::getScore(QVulkanInstance *inst, VkPhysicalDevice &device) {
     // Get device properties
     

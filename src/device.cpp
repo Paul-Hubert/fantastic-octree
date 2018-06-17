@@ -30,7 +30,7 @@ void Device::init() {
     vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, nullptr);
     
     if(num <= 0) {
-        qCritical << "No vulkan enabled device found" << endl;
+        qCritical() << "No vulkan enabled device found" << endl;
         exit(6);
     }
     
@@ -98,7 +98,7 @@ void Device::init() {
     }
     
     if(g_i == 1000) {
-        qCritical << "Could not retrieve queue family" << endl;
+        qCritical() << "Could not retrieve queue family" << endl;
         exit(3);
     }
     
@@ -123,7 +123,7 @@ void Device::init() {
     
     
     if(c_i == 1000) {
-        qCritical << "could not get compute queue" << endl;
+        qCritical() << "could not get compute queue" << endl;
         exit(4);
     }
     

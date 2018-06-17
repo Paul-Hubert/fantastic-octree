@@ -17,9 +17,8 @@ public :
     
     VkPhysicalDevice physical;
     VkDevice logical;
-    VkQueue graphics;
-    VkQueue compute;
-    VkQueue transfer;
+    VkQueue graphics, compute, transfer;
+    uint32_t g_i = 0, c_i = 0, t_i = 0;
     
     VkPhysicalDeviceFeatures requiredFeatures;
     std::vector<const char*> requiredExtensions;

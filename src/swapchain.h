@@ -12,15 +12,22 @@ public :
     ~Swapchain();
     void getSurface();
     void reset();
-    uint32_t NUM_FRAMES = 2;
     
     Windu *win;
     
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-    
     VkSurfaceKHR surface;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+    std::vector<VkImage> images;
+    std::vector<VkImageView> imageViews;
+    VkFormat format;
+    VkExtent2D extent;
+
+    uint32_t NUM_FRAMES = 3;
+    
+private :
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace);
+    VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> &presentModes, VkPresentModeKHR wantedMode);
+    VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR &capabilities);
 };
 
 #endif

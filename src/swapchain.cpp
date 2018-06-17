@@ -51,6 +51,8 @@ void Swapchain::init() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     createInfo.imageSharingMode = (win->device.g_i != win->device.c_i) ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    if(capabilities.supportedUsageFlags & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT) createInfo.flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+    else qDebug("can't write to swapchain");
     
     createInfo.queueFamilyIndexCount = 1 + win->device.g_i == win->device.c_i;
     uint32_t qi[createInfo.queueFamilyIndexCount];

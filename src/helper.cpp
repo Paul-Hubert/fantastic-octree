@@ -2,9 +2,11 @@
 
 #include "helper.h"
 
-void vkAssert(VkResult res) {
+void foAssert(VkResult res) {
     if(res != VK_SUCCESS) {
         qDebug("Assert failed");
         assert(res == VK_SUCCESS);
     }
 }
+
+

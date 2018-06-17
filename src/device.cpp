@@ -28,9 +28,14 @@ void Device::init() {
     
     uint32_t num;
     vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, nullptr);
-    assert(num > 0);
+    
+    if(num <= 0) {
+        qCritical << "No vulkan enabled device found" << endl;
+        exit(6);
+    }
+    
     std::vector<VkPhysicalDevice> p_devices(num);
-    vkAssert(vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
+    foAssert(vk->vkEnumeratePhysicalDevices(inst->vkInstance(), &num, p_devices.data())); // Retrieve list of available physical devices
     
     // Rate each device and pick the first best in the list, if its score is > 0
     uint32_t index = 1000, max = 0;
@@ -91,7 +96,11 @@ void Device::init() {
             break;
         }
     }
-    assert(g_i != 1000);
+    
+    if(g_i == 1000) {
+        qCritical << "Could not retrieve queue family" << endl;
+        exit(3);
+    }
     
     // Gets a compute queue family different from graphics family if possible, then different queue index if possible, else just the same queue.
     c_i = 1000;
@@ -111,7 +120,14 @@ void Device::init() {
             while(c_j == g_j && queueFamilies[i].queueCount > c_j + 1) c_j++;
         }
     }
-    assert(c_i != 1000);
+    
+    
+    if(c_i == 1000) {
+        qCritical << "could not get compute queue" << endl;
+        exit(4);
+    }
+    
+    
     if(c_i == g_i && c_j != g_j) pqinfo[0].queueCount++; // If the same queue family but different queue index, create one more queue from the queue family.
     
     
@@ -131,7 +147,12 @@ void Device::init() {
         }
         while(((t_i == g_i && t_j == g_j) || (t_i == c_i && t_j == c_j)) && queueFamilies[i].queueCount > t_j + 1) t_j++;
     }
-    assert(t_i != 1000);
+    
+    if(t_i == 1000) {
+        qCritical() << "Could not get transfer queue family" << endl;
+        exit(5);
+    }
+    
     if(t_i == g_i && t_j != g_j) {pqinfo[0].queueCount++;}
     else if(c_i == t_i && c_j != t_j) {pqinfo[1].queueCount++;}
     
@@ -151,7 +172,7 @@ void Device::init() {
     deviceInfo.enabledExtensionCount = (uint32_t) requiredExtensions.size();
     deviceInfo.ppEnabledExtensionNames = requiredExtensions.data();
     
-    vkAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
+    foAssert(vk->vkCreateDevice(physical, &deviceInfo, nullptr, &logical)); // Create logical device
     
     QVulkanDeviceFunctions *vkd = inst->deviceFunctions(logical);
     vkd->vkGetDeviceQueue(logical, g_i, g_j, &graphics);

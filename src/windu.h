@@ -34,6 +34,10 @@ public :
     Compute compute;
     
     QSize size;
+    
+private :
+    
+    bool loaded = false;
 };
 
 #endif

@@ -35,7 +35,7 @@ void Swapchain::init() {
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_FIFO_KHR);
     extent = chooseSwapExtent(capabilities);
     format = surfaceformat.format;
-    
+     
     NUM_FRAMES = std::max(capabilities.minImageCount, NUM_FRAMES);
     if (capabilities.maxImageCount > 0 && NUM_FRAMES > capabilities.maxImageCount) {
         NUM_FRAMES = capabilities.maxImageCount;

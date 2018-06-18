@@ -7,6 +7,6 @@
 
 void foAssert(VkResult result);
 
-QByteArray* load(QString fileName);
+QByteArray load(QString fileName);
 
 #endif

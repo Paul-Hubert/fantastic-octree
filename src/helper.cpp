@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QFile>
 
 #include "helper.h"
 
@@ -14,5 +15,3 @@ QByteArray* load(QString fileName) {
     if (!file.open(QIODevice::ReadOnly)) return nullptr;
     return &file.readAll();
 }
-
-

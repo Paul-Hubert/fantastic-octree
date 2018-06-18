@@ -10,9 +10,17 @@ public :
     Compute(Windu *win);
     ~Compute();
     void init();
+    void setup();
+    void cleanup();
+    void reset();
     
     Windu *win;
     
+    VkDescriptorPool descriptorPool;
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkPipelineLayout pipelineLayout;
+    
+    std::vector<VkDescriptorSet> descriptorSet;
 };
 
 #endif

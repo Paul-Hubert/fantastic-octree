@@ -26,6 +26,16 @@ Windu::Windu() : device(this), swap(this), compute(this), size(1024, 768) {
     
     resize(size);
     
+    swap.getSurface();
+    
+    vki = inst.functions();
+    device.init();
+    vkd = inst.deviceFunctions(device.logical);
+    
+    swap.init();
+    
+    compute.init();
+    
 }
 
 Windu::~Windu() {
@@ -36,17 +46,10 @@ void Windu::start() {
     
     swap.getSurface();
     
-    if(!loaded) {
-        vki = inst.functions();
-        device.init();
-        vkd = inst.deviceFunctions(device.logical);
-    }
-    
     swap.init();
     
-    compute.init();
+    compute.reset();
     
-    loaded = true;
 }
 
 void Windu::reset() {

@@ -34,14 +34,6 @@ public :
     Compute compute;
     
     QSize size;
-    
-private :
-    void getDevice();
-    void select(VkPhysicalDevice *dev);
-    int getScore(VkPhysicalDevice *dev);
-    
-    
-    bool loaded = false;
 };
 
 #endif

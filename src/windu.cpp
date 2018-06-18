@@ -44,7 +44,8 @@ void Windu::start() {
     
     swap.init();
     
-    compute.reset();
+    if(!loaded) compute.init();
+    else compute.reset();
     
     loaded = true;
 }

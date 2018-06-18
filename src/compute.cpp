@@ -12,7 +12,7 @@ void Compute::init() {
     
     VkDescriptorPoolSize poolSize = {};
     poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    poolSize.descriptorCount = 1;
+    poolSize.descriptorCount = win->swap.NUM_FRAMES;
     
     VkDescriptorPoolCreateInfo dpinfo = {};
     dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -49,13 +49,14 @@ void Compute::init() {
     VkDescriptorSetAllocateInfo allocinfo = {};
     allocinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocinfo.descriptorSetCount = win->swap.NUM_FRAMES;
-    allocinfo.pSetLayouts = &descriptorSetLayout;
+    allocinfo.pSetLayouts = layouts.data();
     allocinfo.descriptorPool = descriptorPool;
     
     descriptorSet.resize(win->swap.NUM_FRAMES);
     foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, descriptorSet.data()));
     
-    VkPipelineShaderStageCreateInfo shaderInfo = {};
+    
+    //VkPipelineShaderStageCreateInfo shaderInfo = {};
     //shaderInfo.sType = 
     
     setup();
@@ -108,7 +109,7 @@ Compute::Compute::~Compute() {
     
     cleanup();
     
-    win->vkd->vkFreeDescriptorSets(win->device.logical, descriptorPool, win->swap.NUM_FRAMES, descriptorSet.data());
+    //win->vkd->vkFreeDescriptorSets(win->device.logical, descriptorPool, descriptorSet.size(), descriptorSet.data());
     
     win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, nullptr);
     

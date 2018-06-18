@@ -130,7 +130,10 @@ void Swapchain::reset() {
 
 void Swapchain::getSurface() {
     surface = win->inst.surfaceForWindow(win);
-    if(surface == VK_NULL_HANDLE) qDebug("hey your surface didn't work");
+    if(surface == VK_NULL_HANDLE) { 
+        qCritical() << "Failed to retrieve surface" << endl;
+        exit(7);
+    }
 }
 
 VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace) {

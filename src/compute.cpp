@@ -70,7 +70,7 @@ void Compute::init() {
     {
         VkShaderModuleCreateInfo moduleInfo = {};
         moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        QByteArray code = load("src/compute.comp.spv");
+        QByteArray code = foLoad("src/compute.comp.spv");
         moduleInfo.codeSize = code.size();
         moduleInfo.pCode = reinterpret_cast<const uint32_t*>(code.constData());
         

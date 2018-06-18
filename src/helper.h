@@ -5,8 +5,11 @@
 #include <QString>
 #include <QByteArray>
 
+#include <vulkan/vulkan_core.h>
+
 void foAssert(VkResult result);
 
-QByteArray load(QString fileName);
+QByteArray foLoad(QString fileName);
 
+VkShaderModule foCreateShaderFromFile(QString fileName);
 #endif

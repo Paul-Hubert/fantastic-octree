@@ -5,6 +5,7 @@
 
 #include "windu.h"
 #include "helper.h"
+#include "renderer.h"
 
 Windu::Windu() : device(this), swap(this), compute(this), size(1024, 768) {
     
@@ -43,6 +44,8 @@ void Windu::start() {
     }
     
     swap.init();
+    
+    
     
     if(!loaded) compute.init();
     else compute.reset();

@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 
 #include "windu.h"
+#include "helper.h"
 
 Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
 

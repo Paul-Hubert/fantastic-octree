@@ -19,8 +19,12 @@ public :
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
-    
+    VkShaderModule shaderModule;
     std::vector<VkDescriptorSet> descriptorSet;
+    VkPipeline pipeline;
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
+    
 };
 
 #endif

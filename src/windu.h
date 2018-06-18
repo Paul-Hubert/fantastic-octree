@@ -9,6 +9,7 @@
 #include "device.h"
 #include "swapchain.h"
 #include "compute.h"
+#include "renderer.h"
 
 class Windu : public QWindow {
 public :
@@ -32,6 +33,7 @@ public :
     Device device;
     Swapchain swap;
     Compute compute;
+    Renderer renderer;
     
     QSize size;
     

@@ -19,15 +19,3 @@ QByteArray foLoad(QString fileName) {
         
     return file.readAll();
 }
-
-VkShaderModule foCreateShaderFromFile(VkDevice* device, QString fileName) {
-    QByteArray bytes = foLoad(fileName);
-    VkShaderModuleCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = bytes.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(bytes.constData());
-    VkShaderModule shaderModule;
-    if(vkCreateShaderModule(*device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        
-    }
-}

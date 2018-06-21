@@ -12,6 +12,8 @@ Swapchain::Swapchain(Windu *win) {
 
 void Swapchain::init() {
     
+    if(swapchain == VK_NULL_HANDLE) prepare(&win->sync);
+    
     INST_LOAD(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
     INST_LOAD(vkGetPhysicalDeviceSurfaceFormatsKHR)
     INST_LOAD(vkGetPhysicalDeviceSurfacePresentModesKHR)
@@ -49,22 +51,14 @@ void Swapchain::init() {
     createInfo.imageColorSpace = surfaceformat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    createInfo.imageSharingMode = (win->device.g_i != win->device.c_i) ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     
-    if(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT) { 
-        createInfo.imageUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
-    } else { 
-        qCritical() << "can't write to swapchain" << endl;
-        exit(8);
-    }
-    
-    
-    createInfo.queueFamilyIndexCount = 1 + win->device.g_i == win->device.c_i;
-    uint32_t qi[createInfo.queueFamilyIndexCount];
-    qi[0] = win->device.g_i;
-    if(win->device.g_i == win->device.c_i) qi[1] = win->device.c_i;
-    createInfo.pQueueFamilyIndices = qi;
+    std::vector<uint32_t> qi;
+    qi.push_back(win->device.g_i);
+    if(win->device.g_i != win->device.t_i) qi.push_back(win->device.t_i);
+    createInfo.imageSharingMode = qi.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = qi.size();
+    createInfo.pQueueFamilyIndices = qi.data();
     
     createInfo.preTransform = capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -118,6 +112,11 @@ void Swapchain::init() {
         
     }
     
+    DEV_LOAD(vkAcquireNextImageKHR)
+    this->vkAcquireNextImageKHR = vkAcquireNextImageKHR;
+    DEV_LOAD(vkQueuePresentKHR)
+    this->vkQueuePresentKHR = vkQueuePresentKHR;
+    
 }
 
 void Swapchain::reset() {
@@ -131,6 +130,73 @@ void Swapchain::reset() {
     swapchain = VK_NULL_HANDLE;
     
 }
+
+
+
+
+
+
+
+/////////////
+// RUNTIME //
+/////////////
+
+uint32_t Swapchain::swap() {
+    sync();
+    
+    std::cout << "swap\n";
+    
+    if(current != 1000) {
+        VkPresentInfoKHR info = {};
+        info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        info.swapchainCount = 1;
+        info.pSwapchains = &swapchain;
+        info.pImageIndices = &current;
+        info.pResults = nullptr;
+        info.waitSemaphoreCount = waitCount;
+        info.pWaitSemaphores = waitSemaphores.data();
+        
+        // This will display the image
+        VkResult result = vkQueuePresentKHR(win->device.graphics, &info);
+        if(result != VK_SUCCESS) {
+            if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+                std::cout << "resize required ------------------------------------------------------------------------------------------------\n";
+                win->vkd->vkDeviceWaitIdle(win->device.logical);
+                win->start();
+            }
+        }
+    }
+    
+    
+    VkResult result;
+    do {
+        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 1000000000000000L, signalCount > 0 ? signalSemaphores[0] : nullptr, VK_NULL_HANDLE, &current);
+        if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            std::cout << "resize required ------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+            win->vkd->vkDeviceWaitIdle(win->device.logical);
+            win->start();
+        } else if(result != VK_SUCCESS) foAssert(result);
+    } while(result != VK_SUCCESS);
+    
+    
+    clock_t end = clock();
+
+    if(time != 0) {
+        std::cout << ((end - time) / (double) CLOCKS_PER_SEC)*1000.0 << "\n";
+        if(end - time > 0) std::cout << (double) CLOCKS_PER_SEC / (end - time) << "\n";
+    }
+    
+    time = end;
+    
+    return current;
+}
+
+
+
+
+
+
+
 
 void Swapchain::getSurface() {
     surface = win->inst.surfaceForWindow(win);

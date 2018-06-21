@@ -8,6 +8,8 @@ Renderer::Renderer(Windu *win) {
 
 void Renderer::init() {
     // Création de ressources statiques, qui ne dépendent pas de la swapchain, qui ne sont donc pas recréé
+    setup();
+    prepare(&win->sync);
 }
 
 void Renderer::setup() {
@@ -23,6 +25,10 @@ void Renderer::reset() {
     setup();
 }
 
+void Renderer::render(uint32_t) {
+    sync();
+}
+
 Renderer::~Renderer() {
     cleanup();
     // Free/Destroy ce qui est créé dans init();
@@ -36,7 +42,7 @@ VkShaderModule Renderer::createShaderFromFile(QString fileName) {
     createInfo.pCode = reinterpret_cast<const uint32_t*>(bytes.constData());
     VkShaderModule shaderModule;
     if(win->vkd->vkCreateShaderModule(win->device.logical, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        
+        return shaderModule;
     }
-
+    return nullptr;
 }

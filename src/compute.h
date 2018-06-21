@@ -3,9 +3,11 @@
 
 #include <QVulkanInstance>
 
+#include "fonode.h"
+
 class Windu;
 
-class Compute {
+class Compute : public foNode {
 public :
     Compute(Windu *win);
     ~Compute();
@@ -13,6 +15,7 @@ public :
     void setup();
     void cleanup();
     void reset();
+    void render(uint32_t i);
     
     Windu *win;
     
@@ -24,6 +27,10 @@ public :
     VkPipeline pipeline;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkImage> images;
+    std::vector<VkImageView> imageViews;
+    VkDeviceSize size = 0;
+    VkDeviceMemory memory;
     
 };
 

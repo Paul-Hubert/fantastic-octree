@@ -5,9 +5,8 @@
 
 #include "windu.h"
 #include "helper.h"
-#include "renderer.h"
 
-Windu::Windu() : device(this), swap(this), compute(this), renderer(this), size(1024, 768) {
+Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), size(1024, 768) {
     
     setSurfaceType(SurfaceType::VulkanSurface);
     
@@ -30,6 +29,7 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), size(1
 }
 
 Windu::~Windu() {
+    vkd->vkDeviceWaitIdle(device.logical);
     printf("Destroying\n");
 }
 
@@ -38,6 +38,8 @@ void Windu::start() {
     swap.getSurface();
     
     if(!loaded) {
+        prepareGraph();
+        
         vki = inst.functions();
         device.init();
         vkd = inst.deviceFunctions(device.logical);
@@ -53,22 +55,40 @@ void Windu::start() {
         renderer.reset();
     }
     
-    loaded = true;
+    if(!loaded) {
+        sync.init();
+        loaded = true;
+        requestUpdate();
+    }
 }
 
 void Windu::reset() {
     
 }
 
+void Windu::prepareGraph() {
+    compute.signalTo(&swap, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    swap.signalTo(&compute, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+}
+
 void Windu::render() {
     
+    if(destroying) {
+        destroy();
+        return;
+    }
+    
+    i = swap.swap();
+    
+    compute.render(i);
+    
+    sync.step();
+    requestUpdate();
 }
 
 void Windu::exposeEvent(QExposeEvent *) {
-    if (isExposed()) {
+    if (isExposed() && !loaded) {
         start();
-    } else {
-        reset();
     }
 }
 
@@ -78,7 +98,7 @@ void Windu::resizeEvent(QResizeEvent *ev) {
 
 void Windu::keyPressEvent(QKeyEvent *ev) {
     if(ev->key() == Qt::Key_Escape) {
-        this->destroy();
+        destroying = true;
     }
 }
 

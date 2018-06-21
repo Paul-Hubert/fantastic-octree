@@ -3,15 +3,19 @@
 
 #include <QVulkanInstance>
 
+#include "fonode.h"
+
 class Windu;
 
-class Swapchain {
+class Swapchain : public foNode {
 public :
     Swapchain(Windu *win);
     void init();
     ~Swapchain();
     void getSurface();
     void reset();
+    
+    uint32_t swap();
     
     Windu *win;
     
@@ -23,11 +27,18 @@ public :
     VkExtent2D extent;
 
     uint32_t NUM_FRAMES = 3;
+    uint32_t current = 1000;
+    
+    clock_t time = 0;
+    
     
 private :
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace);
     VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> &presentModes, VkPresentModeKHR wantedMode);
     VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR &capabilities);
+    
+    PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
+    PFN_vkQueuePresentKHR vkQueuePresentKHR;
 };
 
 #endif

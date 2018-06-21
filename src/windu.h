@@ -10,6 +10,7 @@
 #include "swapchain.h"
 #include "compute.h"
 #include "renderer.h"
+#include "sync.h"
 
 class Windu : public QWindow {
 public :
@@ -25,6 +26,7 @@ public :
     void start();
     void reset();
     
+    void prepareGraph();
     
     QVulkanInstance inst;
     QVulkanFunctions* vki;
@@ -34,12 +36,16 @@ public :
     Swapchain swap;
     Compute compute;
     Renderer renderer;
+    Sync sync;
     
     QSize size;
     
 private :
     
+    bool destroying = false;
     bool loaded = false;
+    uint32_t i = 0;
+    
 };
 
 #endif

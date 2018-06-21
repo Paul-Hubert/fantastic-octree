@@ -1,4 +1,5 @@
 #include <QVulkanDeviceFunctions>
+#include <iostream>
 
 #include "helper.h"
 #include "compute.h"
@@ -115,56 +116,182 @@ void Compute::init() {
         foAssert(win->vkd->vkAllocateCommandBuffers(win->device.logical, &allocInfo, commandBuffers.data()));
     }
     
-    
     setup();
     
+    prepare(&win->sync);
 }
 
 void Compute::setup() {
     
-    std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
-    for(uint32_t i = 0; i<imageInfos.size(); i++) {
-        imageInfos[i].sampler = nullptr;
-        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        imageInfos[i].imageView = win->swap.imageViews[i];
-    }
-    
-    std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES);
-    for(uint32_t i = 0; i<write.size(); i++) {
-        write[i] = {};
-        write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[i].descriptorCount = 1;
-        write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        write[i].pImageInfo = &imageInfos[i];
-        write[i].dstSet = descriptorSet[i];
-        write[i].dstBinding = 0;
-        write[i].dstArrayElement = 0;
-    }
-    
-    win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
-    
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
-    
-    win->vkd->vkQueueWaitIdle(win->device.compute);
-
-    for(uint32_t i = 0; i < win->swap.NUM_FRAMES; i++) {
+    {
+        VkExtent3D extent = {};
+        extent.width = win->swap.extent.width;
+        extent.height = win->swap.extent.height;
+        extent.depth = 1;
         
-        foAssert(win->vkd->vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
-
-        win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
-
-        win->vkd->vkCmdDispatch(commandBuffers[i], win->swap.extent.width / 16, win->swap.extent.height / 16, 1);
-
-        foAssert(win->vkd->vkEndCommandBuffer(commandBuffers[i]));
+        
+    
+        VkImageCreateInfo imageInfo = {};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageInfo.extent = extent;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        
+        std::vector<uint32_t> qi;
+        qi.push_back(win->device.c_i);
+        if(win->device.t_i != win->device.c_i) qi.push_back(win->device.t_i);
+        imageInfo.sharingMode = qi.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.queueFamilyIndexCount = qi.size();
+        imageInfo.pQueueFamilyIndices = qi.data();
+        
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        
+        
+        images.resize(win->swap.NUM_FRAMES);
+        for(uint32_t i = 0; i<win->swap.NUM_FRAMES; i++) {
+            foAssert(win->vkd->vkCreateImage(win->device.logical, &imageInfo, nullptr, &images[i]));
+        }
+    }
+    
+    
+    {
+        VkMemoryRequirements memreq = {};
+        std::vector<VkMemoryRequirements> req(images.size());
+        for(uint32_t i = 0; i < images.size(); i++) {
+            
+            win->vkd->vkGetImageMemoryRequirements(win->device.logical, images[i], &req[i]);
+            memreq.size += (req[i].size/req[i].alignment+1)*req[i].alignment;
+            memreq.alignment = req[i].alignment;
+            memreq.memoryTypeBits |= req[i].memoryTypeBits;
+        }
+        
+        if(size < memreq.size) {
+            
+            if(size != 0) {
+                win->vkd->vkFreeMemory(win->device.logical, memory, nullptr);
+            }
+            size = memreq.size;
+            
+            std::cout << "Reallocating compute image memory\n";
+            
+            VkMemoryAllocateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            info.allocationSize = size;
+            win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &info.memoryTypeIndex);
+            
+            foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, nullptr, &memory));
+            
+        }
+        
+        for(uint32_t i = 0; i < images.size(); i++) {
+            foAssert(win->vkd->vkBindImageMemory(win->device.logical, images[i], memory, i * size/3));
+        }
+    }
+    
+    
+    {
+        imageViews.resize(images.size());
+        for(uint32_t i = 0; i < imageViews.size(); i++) {
+            
+            VkImageViewCreateInfo vInfo = {};
+            vInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            vInfo.image = images[i];
+            vInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            vInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+            
+            vInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            vInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            vInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            vInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            
+            vInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            vInfo.subresourceRange.baseMipLevel = 0;
+            vInfo.subresourceRange.levelCount = 1;
+            vInfo.subresourceRange.baseArrayLayer = 0;
+            vInfo.subresourceRange.layerCount = 1;
+            
+            foAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, nullptr, &imageViews[i]));
+            
+        }
+    }
+    
+    {
+        std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
+        for(uint32_t i = 0; i<imageInfos.size(); i++) {
+            imageInfos[i].sampler = nullptr;
+            imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            imageInfos[i].imageView = imageViews[i];
+        }
+        
+        std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES);
+        for(uint32_t i = 0; i<write.size(); i++) {
+            write[i] = {};
+            write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write[i].descriptorCount = 1;
+            write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            write[i].pImageInfo = &imageInfos[i];
+            write[i].dstSet = descriptorSet[i];
+            write[i].dstBinding = 0;
+            write[i].dstArrayElement = 0;
+        }
+        
+        win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
+    }
+    
+    {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        
+        win->vkd->vkQueueWaitIdle(win->device.compute);
+        
+        for(uint32_t i = 0; i < win->swap.NUM_FRAMES; i++) {
+            
+            foAssert(win->vkd->vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
+            
+            win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+            win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
+            
+            win->vkd->vkCmdDispatch(commandBuffers[i], win->swap.extent.width / 16, win->swap.extent.height / 16, 1);
+            
+            foAssert(win->vkd->vkEndCommandBuffer(commandBuffers[i]));
+            
+        }
     }
     
 }
 
-void Compute::cleanup() {
+
+void Compute::render(uint32_t i) {
+    sync();
     
+    std::cout << "computing\n";
+    
+    VkSubmitInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    info.commandBufferCount = 1;
+    info.pCommandBuffers = &commandBuffers[i];
+    info.waitSemaphoreCount = waitCount;
+    info.pWaitSemaphores = waitSemaphores.data();
+    info.pWaitDstStageMask = waitStages.data();
+    info.signalSemaphoreCount = signalCount;
+    info.pSignalSemaphores = signalSemaphores.data();
+    
+    foAssert(win->vkd->vkQueueSubmit(win->device.compute, 1, &info, VK_NULL_HANDLE));
+    
+}
+
+
+void Compute::cleanup() {
+    for(uint32_t i = 0; i < images.size(); i++) {
+        win->vkd->vkDestroyImageView(win->device.logical, imageViews[i], nullptr);
+        win->vkd->vkDestroyImage(win->device.logical, images[i], nullptr);
+    }
 }
 
 void Compute::reset() {
@@ -176,6 +303,8 @@ void Compute::reset() {
 Compute::Compute::~Compute() {
     
     cleanup();
+    
+    win->vkd->vkFreeMemory(win->device.logical, memory, nullptr);
     
     win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, nullptr);
     

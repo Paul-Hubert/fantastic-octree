@@ -1,9 +1,14 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include <QString>
+
+#include "vulkan/vulkan.h"
+#include "fonode.h"
+
 class Windu;
 
-class Renderer {
+class Renderer : public foNode {
 public:
     Renderer(Windu *win);
     ~Renderer();
@@ -12,6 +17,7 @@ public:
     void setup();
     void cleanup();
     void reset();
+    void render(uint32_t i);
     
     Windu *win;
     

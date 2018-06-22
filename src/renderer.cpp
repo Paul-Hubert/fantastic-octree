@@ -12,6 +12,8 @@ Renderer::Renderer(Windu *win) {
 void Renderer::init() {
     // Création de ressources statiques, qui ne dépendent pas de la swapchain, qui ne sont donc pas recréés
     
+    // RENDERPASS
+    
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = win->swap.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -41,7 +43,7 @@ void Renderer::init() {
     foAssert(win->vkd->vkCreateRenderPass(win->device.logical, &renderPassInfo, nullptr, &renderPass));
     
     
-    
+    // PIPELINE INFO
     
     auto vertShaderCode = foLoad("src/rectangle.vert.spv");
     auto fragShaderCode = foLoad("src/rectangle.frag.spv");
@@ -131,15 +133,79 @@ void Renderer::init() {
     colorBlending.blendConstants[1] = 0.0f;
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-    if (win->vkd->vkCreatePipelineLayout(win->device.logical, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
+    
+    VkDynamicState states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo dynInfo = {};
+    dynInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynInfo.dynamicStateCount = 2;
+    dynInfo.pDynamicStates = &states[0];
+    
+    
+    
+    
+    
+    // Descriptors !!!
+    {
+        VkDescriptorPoolSize poolSize = {};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        poolSize.descriptorCount = win->swap.NUM_FRAMES;
+        
+        VkDescriptorPoolCreateInfo dpinfo = {};
+        dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        dpinfo.poolSizeCount = 1;
+        dpinfo.pPoolSizes = &poolSize;
+        dpinfo.maxSets = win->swap.NUM_FRAMES;
+        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, nullptr, &descriptorPool));
     }
+    
+    
+    {
+        VkDescriptorSetLayoutBinding slb = {};
+        slb.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        slb.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        slb.descriptorCount = 1;
+        slb.binding = 0;
+        
+        VkDescriptorSetLayoutCreateInfo slinfo = {};
+        slinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        slinfo.bindingCount = 1;
+        slinfo.pBindings = &slb;
+        
+        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, nullptr, &descriptorSetLayout));
+    }
+    
+    
+    {
+        VkPipelineLayoutCreateInfo plinfo = {};
+        plinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        plinfo.setLayoutCount = 1;
+        plinfo.pSetLayouts = &descriptorSetLayout;
+        
+        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, nullptr, &pipelineLayout));
+    }
+    
+    
+    {
+        std::vector<VkDescriptorSetLayout> layouts(win->swap.NUM_FRAMES);
+        for(uint32_t i = 0; i<layouts.size(); i++) {
+            layouts[i] = descriptorSetLayout;
+        }
+        
+        VkDescriptorSetAllocateInfo allocinfo = {};
+        allocinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocinfo.descriptorSetCount = win->swap.NUM_FRAMES;
+        allocinfo.pSetLayouts = layouts.data();
+        allocinfo.descriptorPool = descriptorPool;
+        
+        descriptorSet.resize(win->swap.NUM_FRAMES);
+        foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, descriptorSet.data()));
+    }
+    
+    
+    
+    
+    
+    // PIPELINE
 
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -151,6 +217,7 @@ void Renderer::init() {
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynInfo;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
@@ -190,6 +257,28 @@ void Renderer::init() {
 }
 
 void Renderer::setup() {
+    
+    std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
+    for(uint32_t i = 0; i<imageInfos.size(); i++) {
+        imageInfos[i].sampler = nullptr;
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageInfos[i].imageView = win->compute.imageViews[i];
+    }
+    
+    std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES);
+    for(uint32_t i = 0; i<write.size(); i++) {
+        write[i] = {};
+        write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write[i].descriptorCount = 1;
+        write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        write[i].pImageInfo = &imageInfos[i];
+        write[i].dstSet = descriptorSet[i];
+        write[i].dstBinding = 0;
+        write[i].dstArrayElement = 0;
+    }
+    
+    win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
+    
     // Création et update ressources qui sont recréés à chaque récréation de la swapchain
     framebuffers.resize(win->swap.NUM_FRAMES);
     
@@ -215,6 +304,18 @@ void Renderer::setup() {
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
     
+    VkViewport viewport = {};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) win->swap.extent.width;
+    viewport.height = (float) win->swap.extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor = {};
+    scissor.offset = {0, 0};
+    scissor.extent = win->swap.extent;
+    
     for (size_t i = 0; i < framebuffers.size(); i++) {
 
         framebufferInfo.pAttachments = &(win->swap.imageViews[i]);
@@ -227,8 +328,14 @@ void Renderer::setup() {
         win->vkd->vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        
+        win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
 
-        win->vkd->vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+        win->vkd->vkCmdSetViewport(commandBuffers[i], 0, 1, &viewport);
+        
+        win->vkd->vkCmdSetScissor(commandBuffers[i], 0, 1, &scissor);
+        
+        win->vkd->vkCmdDraw(commandBuffers[i], 6, 1, 0, 0);
 
         win->vkd->vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -276,6 +383,10 @@ Renderer::~Renderer() {
     win->vkd->vkDestroyPipeline(win->device.logical, graphicsPipeline, nullptr);
     
     win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, nullptr);
+    
+    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, nullptr);
+    
+    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, nullptr);
     
     win->vkd->vkDestroyRenderPass(win->device.logical, renderPass, nullptr);
 }

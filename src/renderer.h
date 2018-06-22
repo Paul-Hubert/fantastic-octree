@@ -23,7 +23,10 @@ public:
     
 private:
     VkRenderPass renderPass;
+    VkDescriptorPool descriptorPool;
+    VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
+    std::vector<VkDescriptorSet> descriptorSet;
     VkPipeline graphicsPipeline;
     VkCommandPool commandPool;
     std::vector<VkFramebuffer> framebuffers;

@@ -22,8 +22,12 @@ public:
     Windu *win;
     
 private:
-    VkShaderModule createShaderFromFile(QString fileName);
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+    VkCommandPool commandPool;
+    std::vector<VkFramebuffer> framebuffers;
+    std::vector<VkCommandBuffer> commandBuffers;
 };
 
 #endif /* RENDERER_H */
-

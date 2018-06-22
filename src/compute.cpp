@@ -92,6 +92,8 @@ void Compute::init() {
         pipelineInfo.stage = shaderInfo;
         
         foAssert(win->vkd->vkCreateComputePipelines(win->device.logical, nullptr, 1, &pipelineInfo, nullptr, &pipeline));
+        
+        win->vkd->vkDestroyShaderModule(win->device.logical, shaderModule, nullptr);
     }
     
     
@@ -246,7 +248,7 @@ void Compute::setup() {
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         
         win->vkd->vkQueueWaitIdle(win->device.compute);
         
@@ -269,8 +271,6 @@ void Compute::setup() {
 
 void Compute::render(uint32_t i) {
     sync();
-    
-    std::cout << "computing\n";
     
     VkSubmitInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -309,8 +309,6 @@ Compute::Compute::~Compute() {
     win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, nullptr);
     
     win->vkd->vkDestroyPipeline(win->device.logical, pipeline, nullptr);
-    
-    win->vkd->vkDestroyShaderModule(win->device.logical, shaderModule, nullptr);
     
     //foAssert(win->vkd->vkFreeDescriptorSets(win->device.logical, descriptorPool, descriptorSet.size(), descriptorSet.data()));
     

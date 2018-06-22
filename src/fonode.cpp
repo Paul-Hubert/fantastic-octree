@@ -1,5 +1,6 @@
 #include <iterator>
 #include <algorithm>
+#include <iostream>
 
 #include "fonode.h"
 
@@ -28,6 +29,7 @@ void foNode::prepare(Sync *semaphores) {
 
 void foNode::sync() {
     signalCount = 0;
+    
     for(uint32_t i = 0; i < signalNodes.size(); i++) {
         VkSemaphore sem = semaphores->getSemaphore(semaphoreHandles[i]);
         if(signalNodes[i]->prepareSignal(this, sem)) {

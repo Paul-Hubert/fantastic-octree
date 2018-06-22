@@ -29,7 +29,7 @@ protected :
     std::map<foNode*, VkPipelineStageFlags> waitNodeStages;
     std::vector<VkPipelineStageFlags> waitStages;
     std::vector<uint32_t> semaphoreHandles; // handles to signalSemaphores in Sync.
-    uint32_t waitCount, tempWaitCount, signalCount;
+    uint32_t waitCount, tempWaitCount = 0, signalCount;
     
     Sync *semaphores;
     

@@ -34,7 +34,7 @@ void Swapchain::init() {
     vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, presentModes.data());
     
     VkSurfaceFormatKHR surfaceformat = chooseSwapSurfaceFormat(formats, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_FIFO_KHR);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
     extent = chooseSwapExtent(capabilities);
     format = surfaceformat.format;
      
@@ -121,6 +121,8 @@ void Swapchain::init() {
 
 void Swapchain::reset() {
     
+     win->vkd->vkDeviceWaitIdle(win->device.logical);
+    
     for (auto imageView : imageViews) {
         win->vkd->vkDestroyImageView(win->device.logical, imageView, nullptr);
     }
@@ -143,8 +145,6 @@ void Swapchain::reset() {
 
 uint32_t Swapchain::swap() {
     sync();
-    
-    std::cout << "swap\n";
     
     if(current != 1000) {
         VkPresentInfoKHR info = {};
@@ -183,7 +183,7 @@ uint32_t Swapchain::swap() {
 
     if(time != 0) {
         std::cout << ((end - time) / (double) CLOCKS_PER_SEC)*1000.0 << "\n";
-        if(end - time > 0) std::cout << (double) CLOCKS_PER_SEC / (end - time) << "\n";
+        //if(end - time > 0) std::cout << (double) CLOCKS_PER_SEC / (end - time) << "\n";
     }
     
     time = end;

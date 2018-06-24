@@ -60,6 +60,8 @@ void Windu::start() {
         loaded = true;
         requestUpdate();
     }
+    
+    timer.start();
 }
 
 void Windu::reset() {
@@ -75,6 +77,10 @@ void Windu::prepareGraph() {
 }
 
 void Windu::render() {
+    
+    qint64 currentNano = timer.nsecsElapsed();
+    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame." << endl;
+    lastNano = currentNano;
     
     if(destroying) {
         destroy();

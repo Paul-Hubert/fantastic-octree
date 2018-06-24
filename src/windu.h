@@ -5,6 +5,7 @@
 #include <QVulkanInstance>
 #include <QVulkanFunctions>
 #include <QVulkanDeviceFunctions>
+#include <QElapsedTimer>
 
 #include "device.h"
 #include "swapchain.h"
@@ -41,11 +42,12 @@ public :
     QSize size;
     
 private :
-    
     bool destroying = false;
     bool loaded = false;
     uint32_t i = 0;
     
+    QElapsedTimer timer;
+    qint64 lastNano = 0;
 };
 
 #endif

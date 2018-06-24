@@ -1,6 +1,7 @@
 #include <QVulkanFunctions>
 #include <iostream>
 #include <vulkan/vulkan.h>
+#include <time.h>
 
 #include "windu.h"
 #include "helper.h"
@@ -168,9 +169,11 @@ uint32_t Swapchain::swap() {
     }
     
     
+    // Mesure time this takes
+    
     VkResult result;
     do {
-        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 1000000000000000L, signalCount > 0 ? signalSemaphores[0] : nullptr, VK_NULL_HANDLE, &current);
+        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? signalSemaphores[0] : nullptr, VK_NULL_HANDLE, &current);
         if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             std::cout << "resize required ------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
             win->vkd->vkDeviceWaitIdle(win->device.logical);
@@ -179,14 +182,7 @@ uint32_t Swapchain::swap() {
     } while(result != VK_SUCCESS);
     
     
-    clock_t end = clock();
-
-    if(time != 0) {
-        std::cout << ((end - time) / (double) CLOCKS_PER_SEC)*1000.0 << "\n";
-        //if(end - time > 0) std::cout << (double) CLOCKS_PER_SEC / (end - time) << "\n";
-    }
-    
-    time = end;
+    // end this
     
     return current;
 }

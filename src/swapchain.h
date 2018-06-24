@@ -29,9 +29,6 @@ public :
     uint32_t NUM_FRAMES = 3;
     uint32_t current = 1000;
     
-    clock_t time = 0;
-    
-    
 private :
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> &formats, VkFormat wantedFormat, VkColorSpaceKHR wantedColorSpace);
     VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> &presentModes, VkPresentModeKHR wantedMode);
@@ -39,6 +36,9 @@ private :
     
     PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
     PFN_vkQueuePresentKHR vkQueuePresentKHR;
+    
+    uint64_t last = 0;
+    double frametime = 0.0, count = 0.0;
 };
 
 #endif

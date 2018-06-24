@@ -69,7 +69,7 @@ void Windu::reset() {
 void Windu::prepareGraph() {
     
     swap.signalTo(&compute, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-    compute.signalTo(&renderer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    compute.signalTo(&renderer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     renderer.signalTo(&swap, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
     
 }

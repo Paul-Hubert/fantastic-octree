@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     
     Windu win;
     
-    win.show();
+    win.showFullScreen();
 
     return app.exec();
 }

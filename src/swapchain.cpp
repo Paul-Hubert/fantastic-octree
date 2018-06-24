@@ -35,7 +35,7 @@ void Swapchain::init() {
     vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, presentModes.data());
     
     VkSurfaceFormatKHR surfaceformat = chooseSwapSurfaceFormat(formats, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_FIFO_KHR);
     extent = chooseSwapExtent(capabilities);
     format = surfaceformat.format;
      
@@ -164,7 +164,7 @@ uint32_t Swapchain::swap() {
                 std::cout << "resize required ------------------------------------------------------------------------------------------------\n";
                 win->vkd->vkDeviceWaitIdle(win->device.logical);
                 win->start();
-            }
+            } else foAssert(result);
         }
     }
     

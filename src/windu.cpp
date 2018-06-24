@@ -24,7 +24,7 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
     
     setVulkanInstance(&inst);
     
-    resize(size);
+    //resize(size);
     
 }
 

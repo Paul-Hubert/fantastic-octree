@@ -6,5 +6,5 @@ layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 
 void main() {
     ivec2 size = imageSize(resultImage);
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sin(gl_GlobalInvocationID.x/float(size.x)*2.0), cos(gl_GlobalInvocationID.y/float(size.y)*2.0), 0.0, 1.0));
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sin((gl_GlobalInvocationID.x%gl_GlobalInvocationID.y)/10), cos((gl_GlobalInvocationID.y%gl_GlobalInvocationID.x)/10), tan((gl_GlobalInvocationID.x*gl_GlobalInvocationID.y)/(size.x+size.y)), 1.0));
 }

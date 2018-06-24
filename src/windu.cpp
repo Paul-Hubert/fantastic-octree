@@ -79,7 +79,7 @@ void Windu::prepareGraph() {
 void Windu::render() {
     
     qint64 currentNano = timer.nsecsElapsed();
-    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame." << endl;
+    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame."  << "fps:" << 1000000000./(currentNano - lastNano)<< endl;
     lastNano = currentNano;
     
     if(destroying) {

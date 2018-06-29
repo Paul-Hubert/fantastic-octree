@@ -1,6 +1,10 @@
 #include <QVulkanDeviceFunctions>
 #include <iostream>
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "helper.h"
 #include "compute.h"
 #include "windu.h"
@@ -9,33 +13,49 @@ Compute::Compute(Windu *win) {
     this->win = win;
 }
 
+struct Transform {
+    glm::mat4 mvp;
+};
+
 void Compute::init() {
     
     {
-        VkDescriptorPoolSize poolSize = {};
-        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        poolSize.descriptorCount = win->swap.NUM_FRAMES;
+        VkDescriptorPoolSize size[2];
+        size[0] = {};
+        size[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        size[0].descriptorCount = win->swap.NUM_FRAMES;
+        size[1] = {};
+        size[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        size[1].descriptorCount = win->swap.NUM_FRAMES;
         
         VkDescriptorPoolCreateInfo dpinfo = {};
         dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        dpinfo.poolSizeCount = 1;
-        dpinfo.pPoolSizes = &poolSize;
+        dpinfo.poolSizeCount = 2;
+        dpinfo.pPoolSizes = &size[0];
         dpinfo.maxSets = win->swap.NUM_FRAMES;
         foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, nullptr, &descriptorPool));
     }
     
     
     {
-        VkDescriptorSetLayoutBinding slb = {};
-        slb.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        slb.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        slb.descriptorCount = 1;
-        slb.binding = 0;
+        VkDescriptorSetLayoutBinding slb[2];
+        slb[0] = {};
+        slb[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        slb[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        slb[0].descriptorCount = 1;
+        slb[0].binding = 0;
+        
+        slb[1] = {};
+        slb[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        slb[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        slb[1].descriptorCount = 1;
+        slb[1].binding = 1;
+        
         
         VkDescriptorSetLayoutCreateInfo slinfo = {};
         slinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        slinfo.bindingCount = 1;
-        slinfo.pBindings = &slb;
+        slinfo.bindingCount = 2;
+        slinfo.pBindings = &slb[0];
         
         foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, nullptr, &descriptorSetLayout));
     }
@@ -118,6 +138,39 @@ void Compute::init() {
         foAssert(win->vkd->vkAllocateCommandBuffers(win->device.logical, &allocInfo, commandBuffers.data()));
     }
     
+    {
+    
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.queueFamilyIndexCount = 1;
+        bufferInfo.pQueueFamilyIndices = &win->device.c_i;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        bufferInfo.size = sizeof(Transform);
+        
+        win->vkd->vkCreateBuffer(win->device.logical, &bufferInfo, nullptr, &ubo);
+        
+        VkMemoryRequirements memreq;
+        win->vkd->vkGetBufferMemoryRequirements(win->device.logical, ubo, &memreq);
+        
+        VkMemoryAllocateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        info.allocationSize = (memreq.size/memreq.alignment + 1) * memreq.alignment * 4;
+        win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &info.memoryTypeIndex);
+        
+        foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, nullptr, &uniformMemory));
+        
+        foAssert(win->vkd->vkBindBufferMemory(win->device.logical, ubo, uniformMemory, 0));
+        
+    }
+    
+    {
+        VkFenceCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        win->vkd->vkCreateFence(win->device.logical, &info, nullptr, &fence);
+    }
+    
     setup();
     
     prepare(&win->sync);
@@ -196,6 +249,7 @@ void Compute::setup() {
     }
     
     
+    
     {
         imageViews.resize(images.size());
         for(uint32_t i = 0; i < imageViews.size(); i++) {
@@ -229,9 +283,13 @@ void Compute::setup() {
             imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imageInfos[i].imageView = imageViews[i];
         }
+        VkDescriptorBufferInfo bufferInfo = {};
+        bufferInfo.buffer = ubo;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Transform);
         
-        std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES);
-        for(uint32_t i = 0; i<write.size(); i++) {
+        std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES*2);
+        for(uint32_t i = 0; i<win->swap.NUM_FRAMES; i++) {
             write[i] = {};
             write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write[i].descriptorCount = 1;
@@ -241,6 +299,17 @@ void Compute::setup() {
             write[i].dstBinding = 0;
             write[i].dstArrayElement = 0;
         }
+        for(uint32_t i = win->swap.NUM_FRAMES; i<win->swap.NUM_FRAMES*2; i++) {
+            write[i] = {};
+            write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write[i].descriptorCount = 1;
+            write[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            write[i].pBufferInfo = &bufferInfo;
+            write[i].dstSet = descriptorSet[i - win->swap.NUM_FRAMES];
+            write[i].dstBinding = 1;
+            write[i].dstArrayElement = 0;
+        }
+        
         
         win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
     }
@@ -248,7 +317,7 @@ void Compute::setup() {
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.flags = 0;
         
         win->vkd->vkQueueWaitIdle(win->device.compute);
         
@@ -259,7 +328,7 @@ void Compute::setup() {
             win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
             win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
             
-            win->vkd->vkCmdDispatch(commandBuffers[i], win->swap.extent.width / 16, win->swap.extent.height / 16, 1);
+            win->vkd->vkCmdDispatch(commandBuffers[i], win->swap.extent.width / 16 + 1, win->swap.extent.height / 16 + 1, 1);
             
             foAssert(win->vkd->vkEndCommandBuffer(commandBuffers[i]));
             
@@ -272,6 +341,8 @@ void Compute::setup() {
 void Compute::render(uint32_t i) {
     sync();
     
+    t++;
+    
     VkSubmitInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     info.commandBufferCount = 1;
@@ -282,7 +353,20 @@ void Compute::render(uint32_t i) {
     info.signalSemaphoreCount = signalCount;
     info.pSignalSemaphores = signalSemaphores.data();
     
-    foAssert(win->vkd->vkQueueSubmit(win->device.compute, 1, &info, VK_NULL_HANDLE));
+    
+    Transform ubo = {};
+    ubo.mvp = win->camera.getViewProj();
+    
+    win->vkd->vkWaitForFences(win->device.logical, 1, &fence, true, 1000000000000000L);
+    
+    void* data;
+    win->vkd->vkMapMemory(win->device.logical, uniformMemory, 0, sizeof(ubo), 0, &data);
+    memcpy(data, &ubo, sizeof(ubo));
+    win->vkd->vkUnmapMemory(win->device.logical, uniformMemory);
+    
+    win->vkd->vkResetFences(win->device.logical, 1, &fence);
+    
+    foAssert(win->vkd->vkQueueSubmit(win->device.compute, 1, &info, fence));
     
 }
 
@@ -303,6 +387,12 @@ void Compute::reset() {
 Compute::Compute::~Compute() {
     
     cleanup();
+    
+    win->vkd->vkDestroyFence(win->device.logical, fence, nullptr);
+    
+    win->vkd->vkDestroyBuffer(win->device.logical, ubo, nullptr);
+    
+    win->vkd->vkFreeMemory(win->device.logical, uniformMemory, nullptr);
     
     win->vkd->vkFreeMemory(win->device.logical, memory, nullptr);
     

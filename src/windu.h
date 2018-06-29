@@ -12,6 +12,7 @@
 #include "compute.h"
 #include "renderer.h"
 #include "sync.h"
+#include "camera.h"
 
 class Windu : public QWindow {
 public :
@@ -23,6 +24,8 @@ public :
     virtual void resizeEvent(QResizeEvent *ev) override;
     virtual void exposeEvent(QExposeEvent *ev) override;
     virtual void keyPressEvent(QKeyEvent *ev) override;
+    virtual void keyReleaseEvent(QKeyEvent *ev) override;
+    virtual void mouseMoveEvent(QMouseEvent *ev) override;
     virtual bool event(QEvent *e) override;
     void start();
     void reset();
@@ -38,6 +41,7 @@ public :
     Compute compute;
     Renderer renderer;
     Sync sync;
+    Camera camera;
     
     QSize size;
     

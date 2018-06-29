@@ -31,7 +31,12 @@ public :
     std::vector<VkImageView> imageViews;
     VkDeviceSize size = 0;
     VkDeviceMemory memory;
+    VkBuffer ubo;
+    VkDeviceMemory uniformMemory;
     
+    VkFence fence;
+    
+    uint32_t t = 0;
 };
 
 #endif

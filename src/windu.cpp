@@ -24,6 +24,8 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
     
     setVulkanInstance(&inst);
     
+    //setMouseTracking(true); // E.g. set in your constructor of your widget.
+    
     //resize(size);
     
 }
@@ -48,9 +50,11 @@ void Windu::start() {
     swap.init();
     
     if(!loaded) {
+        camera.init(swap.extent.width, swap.extent.height);
         compute.init();
         renderer.init();
     } else {
+        camera.reset(swap.extent.width, swap.extent.height);
         compute.reset();
         renderer.reset();
     }
@@ -77,15 +81,17 @@ void Windu::prepareGraph() {
 }
 
 void Windu::render() {
-    
-    qint64 currentNano = timer.nsecsElapsed();
-    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame."  << "fps:" << 1000000000./(currentNano - lastNano)<< endl;
-    lastNano = currentNano;
-    
     if(destroying) {
         destroy();
         return;
     }
+    
+    qint64 currentNano = timer.nsecsElapsed();
+    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame."  << "fps:" << 1000000000./(currentNano - lastNano)<< endl;
+    
+    camera.step((currentNano - lastNano)/1000000.);
+    
+    lastNano = currentNano;
     
     i = swap.swap();
     
@@ -94,6 +100,7 @@ void Windu::render() {
     renderer.render(i);
     
     sync.step();
+    
     requestUpdate();
 }
 
@@ -111,6 +118,20 @@ void Windu::keyPressEvent(QKeyEvent *ev) {
     if(ev->key() == Qt::Key_Escape) {
         destroying = true;
     }
+    camera.keyPressEvent(ev);
+}
+
+void Windu::keyReleaseEvent(QKeyEvent *ev) {
+    camera.keyReleaseEvent(ev);
+}
+
+// Implement in your widget
+void Windu::mouseMoveEvent(QMouseEvent *ev) {
+    camera.mouseMoveEvent(ev);
+    QCursor c = cursor();
+    c.setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+    c.setShape(Qt::BlankCursor);
+    setCursor(c);
 }
 
 bool Windu::event(QEvent *e) {

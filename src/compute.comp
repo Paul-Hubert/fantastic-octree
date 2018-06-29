@@ -4,7 +4,39 @@
 layout (local_size_x = 16, local_size_y = 16) in;
 layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 
+layout (binding = 1) uniform Transform {
+    mat4 mvp;
+} ubo;
+
 void main() {
-    ivec2 size = imageSize(resultImage);
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sin((gl_GlobalInvocationID.x%gl_GlobalInvocationID.y)/10), cos((gl_GlobalInvocationID.y%gl_GlobalInvocationID.x)/10), (gl_GlobalInvocationID.x+gl_GlobalInvocationID.y)/(float(size.x+size.y)), 1.0));
+    vec2 size = vec2(imageSize(resultImage));
+    if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+    
+    vec3 ray = vec3(vec4(gl_GlobalInvocationID.x / size.x * 2. - 1.0, gl_GlobalInvocationID.y / size.y *2. - 1.0, 100., 1.) * inverse(ubo.mvp));
+    //ray /= ray.w;
+    //ray -= vec4(0.0, 0.0, 0.0, 1.0) * ubo.mvp;
+    //imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), ray);
+    
+    vec3 position = vec3(0.0);
+    
+    ray = normalize(ray);
+    
+    float length = 0;
+    float density, nextdensity;
+    do {
+        density = nextdensity;
+        length+=1.;
+        if(length>100.0) {
+            imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0));
+            return;
+        }
+        position+=ray;
+        nextdensity = position.y - sin(position.x);
+    } while(nextdensity > 0);
+    position -= ray * nextdensity/(nextdensity+density);
+    
+    dot(vec3(0.0,1.0,0.0), position);
+    
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0)*dot(vec3(0.0,1.0,0.0), position));
+    
 }

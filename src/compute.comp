@@ -14,29 +14,32 @@ void main() {
     
     vec3 ray = vec3(vec4(gl_GlobalInvocationID.x / size.x * 2. - 1.0, gl_GlobalInvocationID.y / size.y *2. - 1.0, 100., 1.) * inverse(ubo.mvp));
     //ray /= ray.w;
-    //ray -= vec4(0.0, 0.0, 0.0, 1.0) * ubo.mvp;
+    
     //imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), ray);
     
-    vec3 position = vec3(0.0);
+    vec3 position = vec3(vec4(0.0, 0.0, 0.0, 1.0) * ubo.mvp);
+    
+    //ray -= position;
     
     ray = normalize(ray);
     
     float length = 0;
-    float density, nextdensity;
+    float density = 0.0, nextdensity = 1.0, adv;
     do {
-        density = nextdensity;
-        length+=1.;
+        
+        adv = max(1./(nextdensity - density), 1.);
+        length+=adv;
         if(length>100.0) {
             imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0));
             return;
         }
-        position+=ray;
-        nextdensity = position.y - sin(position.x);
+        position+=ray*adv;
+        
+        density = nextdensity;
+        nextdensity = 10. - position.y - 0.5*sin(position.x)*cos(position.z);
     } while(nextdensity > 0);
-    position -= ray * nextdensity/(nextdensity+density);
+    position -= ray * -adv*nextdensity/(-nextdensity+density);
     
-    dot(vec3(0.0,1.0,0.0), position);
-    
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0)*dot(vec3(0.0,1.0,0.0), position));
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0, 0.0, 0.0, 1.0)*dot(vec3(0.0,1.0,0.0), position));
     
 }

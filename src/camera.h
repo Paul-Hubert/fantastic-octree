@@ -27,7 +27,7 @@ private:
     glm::vec3 pos;
     int width, height;
     
-    double speed = 2.0;
+    double speed = 20.0;
     double xangle = 0.0, yangle = 0.0;
     bool up = false, down = false, left = false, right = false, shift = false, space = false;
     

@@ -55,14 +55,40 @@ glm::mat4 Camera::getViewProj() {
 
 void Camera::mouseMoveEvent(QMouseEvent *ev) {
     
-    yangle -= (ev->pos().x() - this->width/2.0) * (M_PI*0.1/180.);
+    yangle += (ev->pos().x() - this->width/2.0) * (M_PI*0.1/180.);
     xangle -= (ev->pos().y() - this->height/2.0)* (M_PI*0.1/180.);
 }
 
 void Camera::keyPressEvent(QKeyEvent *ev) {
-    
+    bool value = true;
+    switch(ev->key()) {
+        case(Qt::Key_Z):
+            this->up = value;
+            break;
+        case(Qt::Key_Q):
+            this->left = value;
+            break;
+        case(Qt::Key_D):
+            this->right = value;
+            break;
+        case(Qt::Key_S):
+            this->down = value;
+    }
 }
 
 void Camera::keyReleaseEvent(QKeyEvent *ev) {
-    
+    bool value = false;
+    switch(ev->key()) {
+        case(Qt::Key_Z):
+            this->up = value;
+            break;
+        case(Qt::Key_Q):
+            this->left = value;
+            break;
+        case(Qt::Key_D):
+            this->right = value;
+            break;
+        case(Qt::Key_S):
+            this->down = value;
+    }
 }

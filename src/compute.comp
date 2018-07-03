@@ -6,6 +6,7 @@ layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 
 layout (binding = 1) uniform Transform {
     mat4 mvp;
+    vec3 pos;
 } ubo;
 
 void main() {
@@ -17,7 +18,7 @@ void main() {
     
     //imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), ray);
     
-    vec3 position = vec3(vec4(0.0, 0.0, 0.0, 1.0) * ubo.mvp);
+    vec3 position = ubo.pos;
     
     //ray -= position;
     
@@ -26,8 +27,7 @@ void main() {
     float length = 0;
     float density = 0.0, nextdensity = 1.0, adv;
     do {
-        
-        adv = max(1./(nextdensity - density), 1.);
+        adv = max(density - nextdensity, 1.);
         length+=adv;
         if(length>100.0) {
             imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0));
@@ -36,10 +36,12 @@ void main() {
         position+=ray*adv;
         
         density = nextdensity;
-        nextdensity = 10. - position.y - 0.5*sin(position.x)*cos(position.z);
+        nextdensity = 10. - position.y - 5.*sin(position.x/5.) - 5*cos(position.z/5.);
     } while(nextdensity > 0);
-    position -= ray * -adv*nextdensity/(-nextdensity+density);
+    position -= ray * adv*nextdensity/(nextdensity-density);
     
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0, 0.0, 0.0, 1.0)*dot(vec3(0.0,1.0,0.0), position));
+    vec3 light = normalize(vec3(0.0,1.,0.2));
+    
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(1.0, 0.0, 0.0)*dot(light, normalize(vec3(cos(position.x/5.), 1.0, -sin(position.x/5.)))),1.0));
     
 }

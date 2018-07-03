@@ -4,7 +4,7 @@
 #include "camera.h"
 
 void Camera::init(int width, int height) {
-    
+    speed = 0.02;
     setup(width, height);
 }
 
@@ -35,11 +35,11 @@ void Camera::step(qint64 dt) {
         pos.x += speed*sin(M_PI/2.0 + yangle)*dt;
         pos.z += speed*cos(M_PI/2.0 + yangle)*dt;
     } if(up) {
-        pos.x -= speed*sin(yangle)*dt;
-        pos.z -= speed*cos(yangle)*dt;
+        pos.x -= speed*sin(M_PI/2.0 - yangle)*dt;
+        pos.z -= speed*cos(M_PI/2.0 - yangle)*dt;
     } if(down) {
-        pos.x += speed*sin(yangle)*dt;
-        pos.z += speed*cos(yangle)*dt;
+        pos.x += speed*sin(M_PI/2.0 - yangle)*dt;
+        pos.z += speed*cos(M_PI/2.0 - yangle)*dt;
     }
     
     if(space) pos.y += speed*dt;
@@ -51,6 +51,10 @@ glm::mat4 Camera::getViewProj() {
     view = glm::rotate(view, (float) xangle, glm::vec3(1.0f, 0.0f, 0.0f));
     view = glm::rotate(view, (float) yangle, glm::vec3(0.0f, 1.0f, 0.0f));
     return glm::inverse(view) * proj;
+}
+
+glm::vec3 Camera::getPos() {
+    return pos;
 }
 
 void Camera::mouseMoveEvent(QMouseEvent *ev) {

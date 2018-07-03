@@ -40,6 +40,8 @@ uint32_t Sync::makeSemaphore() {
 uint32_t Sync::makeFence(bool signaled) {
     Fnum++;
     
+    width = win->swap.NUM_FRAMES;
+    
     fences.resize(Fnum*width);
     
     VkFenceCreateInfo info = {};

@@ -74,8 +74,10 @@ void Windu::reset() {
 
 void Windu::prepareGraph() {
     
-    swap.signalTo(&compute, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
     compute.signalTo(&renderer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    compute.signalTo(&compute, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    
+    swap.signalTo(&renderer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     renderer.signalTo(&swap, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
     
 }
@@ -95,7 +97,11 @@ void Windu::render() {
     
     i = swap.swap();
     
+    
+    //qint64 curr = timer.nsecsElapsed();
     compute.render(i);
+    
+    //qInfo() << ((timer.nsecsElapsed() - curr)/1000000.) << endl;
     
     renderer.render(i);
     

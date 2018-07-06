@@ -33,7 +33,7 @@ void Compute::init() {
         dpinfo.poolSizeCount = 2;
         dpinfo.pPoolSizes = &size[0];
         dpinfo.maxSets = win->swap.NUM_FRAMES;
-        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, nullptr, &descriptorPool));
+        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, VK_NULL_HANDLE, &descriptorPool));
     }
     
     
@@ -57,7 +57,7 @@ void Compute::init() {
         slinfo.bindingCount = 2;
         slinfo.pBindings = &slb[0];
         
-        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, nullptr, &descriptorSetLayout));
+        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, VK_NULL_HANDLE, &descriptorSetLayout));
     }
     
     
@@ -67,7 +67,7 @@ void Compute::init() {
         plinfo.setLayoutCount = 1;
         plinfo.pSetLayouts = &descriptorSetLayout;
         
-        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, nullptr, &pipelineLayout));
+        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, VK_NULL_HANDLE, &pipelineLayout));
     }
     
     
@@ -95,7 +95,7 @@ void Compute::init() {
         moduleInfo.codeSize = code.size();
         moduleInfo.pCode = reinterpret_cast<const uint32_t*>(code.constData());
         
-        foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, nullptr, &shaderModule));
+        foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, VK_NULL_HANDLE, &shaderModule));
     }
     
     
@@ -111,9 +111,9 @@ void Compute::init() {
         pipelineInfo.layout = pipelineLayout;
         pipelineInfo.stage = shaderInfo;
         
-        foAssert(win->vkd->vkCreateComputePipelines(win->device.logical, nullptr, 1, &pipelineInfo, nullptr, &pipeline));
+        foAssert(win->vkd->vkCreateComputePipelines(win->device.logical, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &pipeline));
         
-        win->vkd->vkDestroyShaderModule(win->device.logical, shaderModule, nullptr);
+        win->vkd->vkDestroyShaderModule(win->device.logical, shaderModule, VK_NULL_HANDLE);
     }
     
     
@@ -123,7 +123,7 @@ void Compute::init() {
         poolInfo.queueFamilyIndex = win->device.c_i;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         
-        foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, nullptr, &commandPool));
+        foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, VK_NULL_HANDLE, &commandPool));
     }
     
     
@@ -148,7 +148,7 @@ void Compute::init() {
         bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         bufferInfo.size = sizeof(Transform);
         
-        win->vkd->vkCreateBuffer(win->device.logical, &bufferInfo, nullptr, &ubo);
+        win->vkd->vkCreateBuffer(win->device.logical, &bufferInfo, VK_NULL_HANDLE, &ubo);
         
         VkMemoryRequirements memreq;
         win->vkd->vkGetBufferMemoryRequirements(win->device.logical, ubo, &memreq);
@@ -158,7 +158,7 @@ void Compute::init() {
         info.allocationSize = (memreq.size/memreq.alignment + 1) * memreq.alignment * 4;
         win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &info.memoryTypeIndex);
         
-        foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, nullptr, &uniformMemory));
+        foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, VK_NULL_HANDLE, &uniformMemory));
         
         foAssert(win->vkd->vkBindBufferMemory(win->device.logical, ubo, uniformMemory, 0));
         
@@ -168,7 +168,7 @@ void Compute::init() {
         VkFenceCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        win->vkd->vkCreateFence(win->device.logical, &info, nullptr, &fence);
+        win->vkd->vkCreateFence(win->device.logical, &info, VK_NULL_HANDLE, &fence);
     }
     
     setup();
@@ -195,11 +195,11 @@ void Compute::setup() {
         imageInfo.arrayLayers = 1;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT;
         
         std::vector<uint32_t> qi;
         qi.push_back(win->device.c_i);
-        if(win->device.t_i != win->device.c_i) qi.push_back(win->device.t_i);
+        if(win->device.g_i != win->device.c_i) qi.push_back(win->device.g_i);
         imageInfo.sharingMode = qi.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.queueFamilyIndexCount = qi.size();
         imageInfo.pQueueFamilyIndices = qi.data();
@@ -209,7 +209,7 @@ void Compute::setup() {
         
         images.resize(win->swap.NUM_FRAMES);
         for(uint32_t i = 0; i<win->swap.NUM_FRAMES; i++) {
-            foAssert(win->vkd->vkCreateImage(win->device.logical, &imageInfo, nullptr, &images[i]));
+            foAssert(win->vkd->vkCreateImage(win->device.logical, &imageInfo, VK_NULL_HANDLE, &images[i]));
         }
     }
     
@@ -228,7 +228,7 @@ void Compute::setup() {
         if(size < memreq.size) {
             
             if(size != 0) {
-                win->vkd->vkFreeMemory(win->device.logical, memory, nullptr);
+                win->vkd->vkFreeMemory(win->device.logical, memory, VK_NULL_HANDLE);
             }
             size = memreq.size;
             
@@ -239,7 +239,7 @@ void Compute::setup() {
             info.allocationSize = size;
             win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &info.memoryTypeIndex);
             
-            foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, nullptr, &memory));
+            foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, VK_NULL_HANDLE, &memory));
             
         }
         
@@ -271,7 +271,7 @@ void Compute::setup() {
             vInfo.subresourceRange.baseArrayLayer = 0;
             vInfo.subresourceRange.layerCount = 1;
             
-            foAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, nullptr, &imageViews[i]));
+            foAssert(win->vkd->vkCreateImageView(win->device.logical, &vInfo, VK_NULL_HANDLE, &imageViews[i]));
             
         }
     }
@@ -279,7 +279,7 @@ void Compute::setup() {
     {
         std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
         for(uint32_t i = 0; i<imageInfos.size(); i++) {
-            imageInfos[i].sampler = nullptr;
+            imageInfos[i].sampler = VK_NULL_HANDLE;
             imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imageInfos[i].imageView = imageViews[i];
         }
@@ -311,7 +311,7 @@ void Compute::setup() {
         }
         
         
-        win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
+        win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, VK_NULL_HANDLE);
     }
     
     {
@@ -373,8 +373,8 @@ void Compute::render(uint32_t i) {
 
 void Compute::cleanup() {
     for(uint32_t i = 0; i < images.size(); i++) {
-        win->vkd->vkDestroyImageView(win->device.logical, imageViews[i], nullptr);
-        win->vkd->vkDestroyImage(win->device.logical, images[i], nullptr);
+        win->vkd->vkDestroyImageView(win->device.logical, imageViews[i], VK_NULL_HANDLE);
+        win->vkd->vkDestroyImage(win->device.logical, images[i], VK_NULL_HANDLE);
     }
 }
 
@@ -388,24 +388,24 @@ Compute::Compute::~Compute() {
     
     cleanup();
     
-    win->vkd->vkDestroyFence(win->device.logical, fence, nullptr);
+    win->vkd->vkDestroyFence(win->device.logical, fence, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyBuffer(win->device.logical, ubo, nullptr);
+    win->vkd->vkDestroyBuffer(win->device.logical, ubo, VK_NULL_HANDLE);
     
-    win->vkd->vkFreeMemory(win->device.logical, uniformMemory, nullptr);
+    win->vkd->vkFreeMemory(win->device.logical, uniformMemory, VK_NULL_HANDLE);
     
-    win->vkd->vkFreeMemory(win->device.logical, memory, nullptr);
+    win->vkd->vkFreeMemory(win->device.logical, memory, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, nullptr);
+    win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyPipeline(win->device.logical, pipeline, nullptr);
+    win->vkd->vkDestroyPipeline(win->device.logical, pipeline, VK_NULL_HANDLE);
     
     //foAssert(win->vkd->vkFreeDescriptorSets(win->device.logical, descriptorPool, descriptorSet.size(), descriptorSet.data()));
     
-    win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, nullptr);
+    win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, nullptr);
+    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, nullptr);
+    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, VK_NULL_HANDLE);
     
 }

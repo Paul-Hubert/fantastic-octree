@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
 
     QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
-    
+
     Windu win;
-    
+
     win.showFullScreen();
 
     return app.exec();

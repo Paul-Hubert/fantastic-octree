@@ -16,9 +16,13 @@ HEADERS = $$files(*.h, true)
 target.path = build
 target.depends = spirv
 
-DESTDIR=bin #Target file directory
-OBJECTS_DIR=build #Intermediate object files directory
-MOC_DIR=build #Intermediate moc files directory
+DESTDIR = bin #Target file directory
+OBJECTS_DIR = build #Intermediate object files directory
+MOC_DIR = build #Intermediate moc files directory
 
-CONFIG+=debug
+CONFIG += debug
 QMAKE_EXTRA_COMPILERS += spirv
+
+CONFIG += vulkan
+INCLUDEPATH += $$(VULKAN_SDK)/Include
+INCLUDEPATH += D:/Qt

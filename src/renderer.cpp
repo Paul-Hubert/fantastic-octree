@@ -40,7 +40,7 @@ void Renderer::init() {
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
 
-    foAssert(win->vkd->vkCreateRenderPass(win->device.logical, &renderPassInfo, nullptr, &renderPass));
+    foAssert(win->vkd->vkCreateRenderPass(win->device.logical, &renderPassInfo, VK_NULL_HANDLE, &renderPass));
     
     
     // PIPELINE INFO
@@ -54,12 +54,12 @@ void Renderer::init() {
     moduleInfo.codeSize = vertShaderCode.size();
     moduleInfo.pCode = reinterpret_cast<const uint32_t*>(vertShaderCode.constData());
     VkShaderModule vertShaderModule;
-    foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, nullptr, &vertShaderModule));
+    foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, VK_NULL_HANDLE, &vertShaderModule));
     
     moduleInfo.codeSize = fragShaderCode.size();
     moduleInfo.pCode = reinterpret_cast<const uint32_t*>(fragShaderCode.constData());
     VkShaderModule fragShaderModule;
-    foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, nullptr, &fragShaderModule));
+    foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, VK_NULL_HANDLE, &fragShaderModule));
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -155,7 +155,7 @@ void Renderer::init() {
         dpinfo.poolSizeCount = 1;
         dpinfo.pPoolSizes = &poolSize;
         dpinfo.maxSets = win->swap.NUM_FRAMES;
-        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, nullptr, &descriptorPool));
+        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, VK_NULL_HANDLE, &descriptorPool));
     }
     
     
@@ -171,7 +171,7 @@ void Renderer::init() {
         slinfo.bindingCount = 1;
         slinfo.pBindings = &slb;
         
-        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, nullptr, &descriptorSetLayout));
+        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, VK_NULL_HANDLE, &descriptorSetLayout));
     }
     
     
@@ -181,7 +181,7 @@ void Renderer::init() {
         plinfo.setLayoutCount = 1;
         plinfo.pSetLayouts = &descriptorSetLayout;
         
-        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, nullptr, &pipelineLayout));
+        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, VK_NULL_HANDLE, &pipelineLayout));
     }
     
     
@@ -223,12 +223,12 @@ void Renderer::init() {
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (win->vkd->vkCreateGraphicsPipelines(win->device.logical, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+    if (win->vkd->vkCreateGraphicsPipelines(win->device.logical, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
-    win->vkd->vkDestroyShaderModule(win->device.logical, fragShaderModule, nullptr);
-    win->vkd->vkDestroyShaderModule(win->device.logical, vertShaderModule, nullptr);
+    win->vkd->vkDestroyShaderModule(win->device.logical, fragShaderModule, VK_NULL_HANDLE);
+    win->vkd->vkDestroyShaderModule(win->device.logical, vertShaderModule, VK_NULL_HANDLE);
     
     
     {    
@@ -237,7 +237,7 @@ void Renderer::init() {
         poolInfo.queueFamilyIndex = win->device.g_i;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         
-        foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, nullptr, &commandPool));
+        foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, VK_NULL_HANDLE, &commandPool));
     }
     
     
@@ -260,7 +260,7 @@ void Renderer::setup() {
     
     std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
     for(uint32_t i = 0; i<imageInfos.size(); i++) {
-        imageInfos[i].sampler = nullptr;
+        imageInfos[i].sampler = VK_NULL_HANDLE;
         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
         imageInfos[i].imageView = win->compute.imageViews[i];
     }
@@ -277,7 +277,7 @@ void Renderer::setup() {
         write[i].dstArrayElement = 0;
     }
     
-    win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, nullptr);
+    win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, VK_NULL_HANDLE);
     
     // Création et update ressources qui sont recréés à chaque récréation de la swapchain
     framebuffers.resize(win->swap.NUM_FRAMES);
@@ -319,7 +319,7 @@ void Renderer::setup() {
     for (size_t i = 0; i < framebuffers.size(); i++) {
 
         framebufferInfo.pAttachments = &(win->swap.imageViews[i]);
-        foAssert(win->vkd->vkCreateFramebuffer(win->device.logical, &framebufferInfo, nullptr, &framebuffers[i]));
+        foAssert(win->vkd->vkCreateFramebuffer(win->device.logical, &framebufferInfo, VK_NULL_HANDLE, &framebuffers[i]));
         
         
         renderPassInfo.framebuffer = framebuffers[i];
@@ -348,7 +348,7 @@ void Renderer::setup() {
 void Renderer::cleanup() {
     // Free/Destroy ce qui est créé dans setup
     for (size_t i = 0; i < framebuffers.size(); i++) {
-        win->vkd->vkDestroyFramebuffer(win->device.logical, framebuffers[i], nullptr);
+        win->vkd->vkDestroyFramebuffer(win->device.logical, framebuffers[i], VK_NULL_HANDLE);
         
     }
 }
@@ -378,15 +378,15 @@ Renderer::~Renderer() {
     cleanup();
     // Free/Destroy ce qui est créé dans init();
     
-    win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, nullptr);
+    win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyPipeline(win->device.logical, graphicsPipeline, nullptr);
+    win->vkd->vkDestroyPipeline(win->device.logical, graphicsPipeline, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, nullptr);
+    win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, nullptr);
+    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, nullptr);
+    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, VK_NULL_HANDLE);
     
-    win->vkd->vkDestroyRenderPass(win->device.logical, renderPass, nullptr);
+    win->vkd->vkDestroyRenderPass(win->device.logical, renderPass, VK_NULL_HANDLE);
 }

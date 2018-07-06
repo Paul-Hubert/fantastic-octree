@@ -173,7 +173,7 @@ uint32_t Swapchain::swap() {
     
     VkResult result;
     do {
-        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? signalSemaphores[0] : nullptr, VK_NULL_HANDLE, &current);
+        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? signalSemaphores[0] : VK_NULL_HANDLE, VK_NULL_HANDLE, &current);
         if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             std::cout << "resize required ------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
             win->vkd->vkDeviceWaitIdle(win->device.logical);

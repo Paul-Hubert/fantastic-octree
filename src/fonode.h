@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <map>
-#include <vulkan/vulkan_core.h>
+#include <QVulkanInstance>
 
 #include "sync.h"
 

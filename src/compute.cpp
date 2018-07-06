@@ -339,7 +339,7 @@ void Compute::setup() {
 
 
 void Compute::render(uint32_t i) {
-    sync();
+    
     
     t++;
     
@@ -347,8 +347,10 @@ void Compute::render(uint32_t i) {
     info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     info.commandBufferCount = 1;
     info.pCommandBuffers = &commandBuffers[i];
+    std::vector<VkSemaphore> wait(waitSemaphores);
+    info.pWaitSemaphores = wait.data();
+    sync();
     info.waitSemaphoreCount = waitCount;
-    info.pWaitSemaphores = waitSemaphores.data();
     info.pWaitDstStageMask = waitStages.data();
     info.signalSemaphoreCount = signalCount;
     info.pSignalSemaphores = signalSemaphores.data();

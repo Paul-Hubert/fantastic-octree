@@ -13,21 +13,20 @@ void main() {
     vec2 size = vec2(imageSize(resultImage));
     if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
     
-    vec3 ray = vec3(vec4(gl_GlobalInvocationID.x / size.x * 2. - 1.0, gl_GlobalInvocationID.y / size.y *2. - 1.0, 100., 1.) * inverse(ubo.mvp));
-    //ray /= ray.w;
+    vec3 ray = (vec4(gl_GlobalInvocationID.x / size.x * 2. - 1.0, gl_GlobalInvocationID.y / size.y *2. - 1.0, 0., 1.) * inverse(ubo.mvp)).xyz;
     
     //imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), ray);
     
     vec3 position = ubo.pos;
-    
+
     //ray -= position;
+
+    //ray = normalize(ray);
     
-    ray = normalize(ray);
-    
-    float length = 0;
-    float density = 0.0, nextdensity = 1.0, adv;
+    float length = 0.;
+    float density = 0., nextdensity = 1., adv;
     do {
-        adv = max(density - nextdensity, 1.);
+        adv = 1.;
         length+=adv;
         if(length>100.0) {
             imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.0));

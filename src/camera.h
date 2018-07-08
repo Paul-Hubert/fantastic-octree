@@ -22,6 +22,8 @@ public:
     void mouseMoveEvent(QMouseEvent *ev);
     void keyPressEvent(QKeyEvent *ev);
     void keyReleaseEvent(QKeyEvent *ev);
+
+    void poll(QKeyEvent *ev, bool value);
     
 private:
     glm::mat4 proj, view;

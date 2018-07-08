@@ -14,7 +14,7 @@ Compute::Compute(Windu *win) {
 }
 
 struct Transform {
-    glm::mat4 mvp;
+    glm::mat4 viewinvproj;
     glm::vec3 pos;
 };
 
@@ -357,7 +357,7 @@ void Compute::render(uint32_t i) {
     
     
     Transform ubo = {};
-    ubo.mvp = win->camera.getViewProj();
+    ubo.viewinvproj = win->camera.getView() * glm::inverse(win->camera.getProj());
     ubo.pos = win->camera.getPos();
     
     win->vkd->vkWaitForFences(win->device.logical, 1, &fence, true, 1000000000000000L);

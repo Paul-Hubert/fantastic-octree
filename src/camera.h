@@ -18,6 +18,8 @@ public:
     void step(qint64 dt);
     ~Camera();
     glm::mat4 getViewProj();
+    glm::mat4 getProj();
+    glm::mat4 getView();
     glm::vec3 getPos();
     void mouseMoveEvent(QMouseEvent *ev);
     void keyPressEvent(QKeyEvent *ev);

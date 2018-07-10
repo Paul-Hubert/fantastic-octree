@@ -36,11 +36,11 @@ void Camera::step(qint64 dt) {
         pos.x -= speed*sin(M_PI/2.0 + yangle)*dt;
         pos.z -= speed*cos(M_PI/2.0 + yangle)*dt;
     } if(up) {
-        pos.x += speed*sin(yangle)*dt;
-        pos.z += speed*cos(yangle)*dt;
-    } if(down) {
         pos.x -= speed*sin(yangle)*dt;
         pos.z -= speed*cos(yangle)*dt;
+    } if(down) {
+        pos.x += speed*sin(yangle)*dt;
+        pos.z += speed*cos(yangle)*dt;
     }
     
     if(space) pos.y += speed*dt;
@@ -67,8 +67,8 @@ glm::vec3 Camera::getPos() {
 }
 
 void Camera::mouseMoveEvent(QMouseEvent *ev) {
-    yangle -= (ev->pos().x() - this->width /2.0) * (M_PI*0.1/180.);
-    xangle += (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.);
+    yangle += (ev->pos().x() - this->width /2.0) * (M_PI*0.1/180.);
+    xangle -= (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.);
 }
 
 void Camera::keyPressEvent(QKeyEvent *ev) {

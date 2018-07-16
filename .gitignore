@@ -1,9 +1,9 @@
 bin/*
 build/*
 build
-.qmake.stash
+*.qmake.stash
 Makefile*
-.kdev4
+*.kdev4
 nbproject
 fantastic-octree
 src/*.spv

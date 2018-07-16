@@ -7,9 +7,9 @@
 #include "helper.h"
 
 Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), size(1024, 768) {
-    
+
     setSurfaceType(SurfaceType::VulkanSurface);
-    
+
     inst.setLayers(QByteArrayList()
                    << "VK_LAYER_GOOGLE_threading"
                    << "VK_LAYER_LUNARG_parameter_validation"
@@ -18,16 +18,16 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
                    << "VK_LAYER_LUNARG_image"
                    << "VK_LAYER_LUNARG_swapchain"
                    << "VK_LAYER_GOOGLE_unique_objects");
-    
+
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
-    
+
     setVulkanInstance(&inst);
-    
+
     //setMouseTracking(true); // E.g. set in your constructor of your widget.
-    
+
     //resize(size);
-    
+
 }
 
 Windu::~Windu() {
@@ -36,19 +36,19 @@ Windu::~Windu() {
 }
 
 void Windu::start() {
-    
+
     swap.getSurface();
-    
+
     if(!loaded) {
         prepareGraph();
-        
+
         vki = inst.functions();
         device.init();
         vkd = inst.deviceFunctions(device.logical);
     }
-    
+
     swap.init();
-    
+
     if(!loaded) {
         camera.init(swap.extent.width, swap.extent.height);
         compute.init();
@@ -58,28 +58,28 @@ void Windu::start() {
         compute.reset();
         renderer.reset();
     }
-    
+
     if(!loaded) {
         sync.init();
         loaded = true;
+        timer.start();
         requestUpdate();
     }
-    
-    timer.start();
+
 }
 
 void Windu::reset() {
-    
+
 }
 
 void Windu::prepareGraph() {
-    
+
     compute.signalTo(&renderer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     compute.signalTo(&compute, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-    
+
     swap.signalTo(&renderer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     renderer.signalTo(&swap, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-    
+
 }
 
 void Windu::render() {
@@ -87,26 +87,30 @@ void Windu::render() {
         destroy();
         return;
     }
-    
+
     qint64 currentNano = timer.nsecsElapsed();
-    qInfo() << (currentNano - lastNano)/1000000. << "ms since last frame."  << "fps:" << 1000000000./(currentNano - lastNano)<< endl;
-    
+
     camera.step((currentNano - lastNano)/1000000.);
-    
     lastNano = currentNano;
-    
+
+    time++;
+    if(time>=100) {
+        double frametime = (currentNano - lastHun)/time/1000000.;
+        qInfo() << frametime << "ms since last frame. fps:" << 1000./frametime<< endl;
+        lastHun = currentNano;
+        time = 0;
+    }
+
     i = swap.swap();
-    
-    
-    //qint64 curr = timer.nsecsElapsed();
+
+
     compute.render(i);
-    
-    //qInfo() << ((timer.nsecsElapsed() - curr)/1000000.) << endl;
-    
+
+
     renderer.render(i);
-    
+
     sync.step();
-    
+
     requestUpdate();
 }
 

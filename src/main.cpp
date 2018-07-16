@@ -11,9 +11,11 @@ int main(int argc, char *argv[]) {
 
     QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
 
-    Windu win;
+    Windu* win = new Windu();
 
-    win.showFullScreen();
+    win->showFullScreen();
 
-    return app.exec();
+    int ret = app.exec();
+    delete(win);
+    return ret;
 }

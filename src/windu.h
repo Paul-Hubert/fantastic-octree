@@ -18,9 +18,9 @@ class Windu : public QWindow {
 public :
     Windu();
     ~Windu();
-    
+
     void render();
-    
+
     virtual void resizeEvent(QResizeEvent *ev) override;
     virtual void exposeEvent(QExposeEvent *ev) override;
     virtual void keyPressEvent(QKeyEvent *ev) override;
@@ -29,29 +29,29 @@ public :
     virtual bool event(QEvent *e) override;
     void start();
     void reset();
-    
+
     void prepareGraph();
-    
+
     QVulkanInstance inst;
     QVulkanFunctions* vki;
     QVulkanDeviceFunctions* vkd;
-    
+
     Device device;
     Swapchain swap;
     Compute compute;
     Renderer renderer;
     Sync sync;
     Camera camera;
-    
+
     QSize size;
-    
+
 private :
     bool destroying = false;
     bool loaded = false;
-    uint32_t i = 0;
-    
+    uint32_t i = 0, time = 0;
+
     QElapsedTimer timer;
-    qint64 lastNano = 0;
+    qint64 lastNano = 0, lastHun = 0;
 };
 
 #endif

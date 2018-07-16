@@ -2,8 +2,10 @@ bin/*
 build/*
 build
 .qmake.stash
-Makefile
+Makefile*
 .kdev4
 nbproject
 fantastic-octree
 src/*.spv
+object_script*
+*.user

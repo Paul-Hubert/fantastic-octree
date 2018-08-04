@@ -23,6 +23,7 @@ protected :
     virtual bool isActive() {return true;};
     
     bool prepareSignal(foNode *signaler, VkSemaphore sem);
+    bool prepareSignal(VkPipelineStageFlags stages, VkSemaphore sem);
     
     std::vector<foNode*> waitNodes, signalNodes;
     std::vector<VkSemaphore> waitSemaphores, signalSemaphores;

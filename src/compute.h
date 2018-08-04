@@ -7,6 +7,8 @@
 
 class Windu;
 
+struct Chunk;
+
 class Compute : public foNode {
 public :
     Compute(Windu *win);
@@ -16,6 +18,10 @@ public :
     void cleanup();
     void reset();
     void render(uint32_t i);
+    
+    void* allocate(int size);
+    void upload(int offset, int size);
+    void deallocate();
     
     Windu *win;
     
@@ -33,6 +39,13 @@ public :
     VkDeviceMemory memory;
     VkBuffer ubo;
     VkDeviceMemory uniformMemory;
+    
+    VkBuffer octreeBuffer, octreeHostBuffer;
+    VkDeviceMemory octreeMemory, octreeHostMemory;
+    
+    VkCommandPool transferPool;
+    
+    VkSemaphore transferSem;
     
     VkFence fence;
     

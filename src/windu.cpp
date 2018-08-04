@@ -5,6 +5,7 @@
 
 #include "windu.h"
 #include "helper.h"
+#include "terrain.h"
 
 Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), size(1024, 768) {
 
@@ -32,6 +33,7 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
 
 Windu::~Windu() {
     vkd->vkDeviceWaitIdle(device.logical);
+    delete(terrain);
     printf("Destroying\n");
 }
 
@@ -45,6 +47,7 @@ void Windu::start() {
         vki = inst.functions();
         device.init();
         vkd = inst.deviceFunctions(device.logical);
+        
     }
 
     swap.init();
@@ -53,6 +56,9 @@ void Windu::start() {
         camera.init(swap.extent.width, swap.extent.height);
         compute.init();
         renderer.init();
+        
+        terrain = new Terrain();
+        terrain->init(&compute);
     } else {
         camera.reset(swap.extent.width, swap.extent.height);
         compute.reset();

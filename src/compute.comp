@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout (local_size_x = 16, local_size_y = 16) in;
+layout (local_size_x = 8, local_size_y = 8) in;
 layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 
 layout (binding = 1) uniform Transform {
@@ -9,68 +9,36 @@ layout (binding = 1) uniform Transform {
     vec3 pos;
 } ubo;
 
-// A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
-uint hash( uint x ) {
-    x += ( x << 10u );
-    x ^= ( x >>  6u );
-    x += ( x <<  3u );
-    x ^= ( x >> 11u );
-    x += ( x << 15u );
-    return x;
+struct Chunk {
+    float ptrs[8];
+    uint leaves;
+};
+
+layout(std140, binding = 2) buffer Chunks {
+   Chunk chunks[];
+};
+
+const int CHUNK_SIZE = 16;
+const int MAX_DEPTH = 3;
+
+
+float getNode(vec3 position) {
+    int depth = 0;
+    Chunk curr = chunks[0];
+    vec3 off = vec3(0.);
+    do {
+        ivec3 np = ivec3(position.x-off.x>=0.5, position.y-off.y>=0.5, position.z-off.z>=0.5);
+        int ind = np.x + np.y*4 + np.z*2;
+        if(((curr.leaves >> ind) & 1) == 1) {
+            curr = chunks[int(curr.ptrs[ind])];
+            off += np * pow(2, MAX_DEPTH - depth);
+        } else {
+            return curr.ptrs[ind];
+        }
+        depth++;
+    } while(depth < MAX_DEPTH);
+    return -1.;
 }
-
-
-
-// Compound versions of the hashing algorithm I whipped together.
-uint hash( uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }
-uint hash( uvec3 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z)             ); }
-uint hash( uvec4 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w) ); }
-
-
-
-// Construct a float with half-open range [0:1] using low 23 bits.
-// All zeroes yields 0.0, all ones yields the next smallest representable value below 1.0.
-float floatConstruct( uint m ) {
-    const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
-    const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
-
-    m &= ieeeMantissa;                     // Keep only mantissa bits (fractional part)
-    m |= ieeeOne;                          // Add fractional part to 1.0
-
-    float  f = uintBitsToFloat( m );       // Range [1:2]
-    return f - 1.0;                        // Range [0:1]
-}
-
-// Pseudo-random value in half-open range [0:1].
-float random( float x ) { return floatConstruct(hash(floatBitsToUint(x))); }
-float random( vec2  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random( vec3  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random( vec4  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
-
-// 2D Noise based on Morgan McGuire @morgan3d
-// https://www.shadertoy.com/view/4dS3Wd
-float noise (in vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-
-    // Four corners in 2D of a tile
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-
-    // Smooth Interpolation
-
-    // Cubic Hermine Curve.  Same as SmoothStep()
-    vec2 u = f*f*(3.0-2.0*f);
-    // u = smoothstep(0.,1.,f);
-
-    // Mix 4 corners percentages
-    return mix(a, b, u.x) +
-            (c - a)* u.y * (1.0 - u.x) +
-            (d - b) * u.x * u.y;
-}
-
 
 void main() {
     vec2 size = vec2(imageSize(resultImage));
@@ -80,24 +48,28 @@ void main() {
     
     vec3 position = ubo.pos;
     
-    float length = 0.;
-    float density = 0., nextdensity = 1., adv;
+    
+    
+    vec3 off = vec3(0.);
+    
+    float length = 0., density = 0.;
     do {
-        adv = max((nextdensity - density) * length / 100., 1.);
-        length+=adv;
-        if(length>1000.) {
+        length+=1.;
+        position+=ray;
+        
+        if(position.x<0. || position.x>CHUNK_SIZE || position.y<0. || position.y>CHUNK_SIZE || position.z<0. || position.z>CHUNK_SIZE) {
             imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.));
             return;
         }
-        position+=ray*adv;
         
-        density = nextdensity;
-        nextdensity = noise(position.xz/10.) * 10. + position.y; //10. + position.y + 5.*sin(position.x/5.) + 5*cos(position.z/5.);
-    } while(nextdensity > 0.);
-    position -= ray * adv*nextdensity/(nextdensity-density);
+        density = getNode(position);
+        
+    } while(density > 0.);
+    
+    //position -= ray * nextdensity/(nextdensity-density);
     
     vec3 light = normalize(vec3(0.,1.,0.2));
     
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(1., 0., 0.)*dot(light, normalize(vec3(cos(position.x/5.), 1., -sin(position.x/5.)))),1.));
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(1., 0., 0.)*dot(light, normalize(vec3(cos(position.x/5.), 1., -sin(position.z/5.)))),1.));
     
 }

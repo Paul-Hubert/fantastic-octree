@@ -14,6 +14,8 @@
 #include "sync.h"
 #include "camera.h"
 
+class Terrain;
+
 class Windu : public QWindow {
 public :
     Windu();
@@ -42,6 +44,8 @@ public :
     Renderer renderer;
     Sync sync;
     Camera camera;
+    
+    Terrain* terrain;
 
     QSize size;
 

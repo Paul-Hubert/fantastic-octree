@@ -52,5 +52,15 @@ bool foNode::prepareSignal(foNode *signaler, VkSemaphore sem) {
     } else {
         return false;
     }
-    
+}
+
+bool foNode::prepareSignal(VkPipelineStageFlags stages, VkSemaphore sem) {
+    if(isActive()) {
+        tempWaitCount++;
+        waitSemaphores[tempWaitCount-1] = sem;
+        waitStages[tempWaitCount-1] = stages;
+        return true;
+    } else {
+        return false;
+    }
 }

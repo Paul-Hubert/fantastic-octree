@@ -32,8 +32,6 @@ void Terrain::init(Compute* comp) {
     
     delete[] densities;
     
-    std::cout << offset << "\n";
-    
     readChunk(0, 0);
     
     this->comp->upload(0, (offset+1)*sizeof(Chunk));

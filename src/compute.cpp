@@ -471,7 +471,7 @@ void Compute::upload(int offset, int size) {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandBufferCount = 1;
-    allocInfo.commandPool = commandPool;
+    allocInfo.commandPool = transferPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     
     

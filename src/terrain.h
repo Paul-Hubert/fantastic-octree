@@ -14,7 +14,7 @@
 
 class Compute;
 
-struct alignas(16) Chunk {
+struct Chunk {
     float ptrs[8];
     uint32_t leaves;
 };

@@ -284,7 +284,7 @@ void Compute::init() {
     
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = octreeBuffer;
+        bufferInfo.buffer = this->octreeBuffer;
         bufferInfo.offset = 0;
         bufferInfo.range = OCTREE_SIZE * sizeof(Chunk);
         

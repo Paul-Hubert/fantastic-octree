@@ -18,7 +18,7 @@ void Terrain::init(Compute* comp) {
     for(int x = 0; x < CHUNK_SIZE; x++) {
         for(int y = 0; y < CHUNK_SIZE; y++) {
             for(int z = 0; z < CHUNK_SIZE; z++) {
-                densities[(x * CHUNK_SIZE + y) * CHUNK_SIZE + z] = -3.3+1.8+y;//-8 + y + 5.*sin(x/5.) + 5.*cos(x/5.);
+                densities[(x * CHUNK_SIZE + y) * CHUNK_SIZE + z] = (-12 + y + 5.*sin(x/5.) + 5.*cos(z/5.))*40.;
                 //std::cout << densities[(x * CHUNK_SIZE + y) * CHUNK_SIZE + z] << "\n";
             }
         }

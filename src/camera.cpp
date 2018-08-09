@@ -68,7 +68,7 @@ glm::vec3 Camera::getPos() {
 
 void Camera::mouseMoveEvent(QMouseEvent *ev) {
     yangle += (ev->pos().x() - this->width /2.0) * (M_PI*0.1/180.);
-    xangle -= (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.);
+    xangle = std::max(std::min(xangle - (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.), M_PI/2.), -M_PI/2.);
 }
 
 void Camera::keyPressEvent(QKeyEvent *ev) {

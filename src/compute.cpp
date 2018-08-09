@@ -1,5 +1,3 @@
-#include "compute.h"
-
 #include <QVulkanDeviceFunctions>
 #include <iostream>
 
@@ -7,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "compute.h"
 #include "windu.h"
 #include "terrain.h"
 #include "helper.h"

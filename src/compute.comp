@@ -29,15 +29,18 @@ void main() {
     
     vec3 position = ubo.pos;
     
-    int depth = 0;
-    float len = 0., density = 0.;
+    int depth = 0, ind;
+    float len = 0., density = 1.;
     do {
         len+=.1;
         position+=ray*.1;
         
         if(position.x<0. || position.x>CHUNK_SIZE || position.y<0. || position.y>CHUNK_SIZE || position.z<0. || position.z>CHUNK_SIZE) {
-            imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1.));
-            return;
+            if(len>=100.) {
+                imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(1,1,0,1));
+                return;
+            }
+            continue;
         }
         
         depth = 0;
@@ -45,11 +48,12 @@ void main() {
         vec3 off = vec3(0.);
         density = 1.;
         do {
-            ivec3 np = ivec3(position.x-off.x>=0.5, position.y-off.y>=0.5, position.z-off.z>=0.5);
-            int ind = np.x + np.y*4 + np.z*2;
+            float halfsize = pow(2, MAX_DEPTH - depth);
+            ivec3 np = ivec3(position.x-off.x>=halfsize, position.y-off.y>=halfsize, position.z-off.z>=halfsize);
+            ind = np.x + np.y*4 + np.z*2;
             if(((curr.leaves >> ind) & 1) == 1) {
                 curr = chunks[int(curr.ptrs[ind])];
-                off += np * pow(2, MAX_DEPTH - depth);
+                off += np * halfsize;
             } else {
                 density = curr.ptrs[ind];
                 break;
@@ -59,13 +63,14 @@ void main() {
         
     } while(density > 0.);
     
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(depth == 0, depth == 1, depth == 2, 0));
-    return;
-    
     //position -= ray * nextdensity/(nextdensity-density);
     
+    vec3 color = vec3(depth == 0, depth == 1, depth == 2);
+    //vec3 color = vec3(density == 1., density == -1., density == 0.);
+    //vec3 color = vec3(ind/10.);
+
     vec3 light = normalize(vec3(0.,1.,0.2));
     
-    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(1., 0., 0.)*dot(light, normalize(vec3(cos(position.x/5.), 1., -sin(position.z/5.)))),1.));
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(color*dot(light, normalize(vec3(cos(position.x/5.), 1., -sin(position.z/5.)))),1.));
     
 }

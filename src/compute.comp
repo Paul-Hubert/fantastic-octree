@@ -15,11 +15,11 @@ struct Chunk {
 };
 
 layout(std430, binding = 2) buffer Chunks {
-   Chunk chunks[];
+    Chunk chunks[];
 };
 
-const int CHUNK_SIZE = 16;
-const int MAX_DEPTH = 3;
+const int CHUNK_SIZE = 64;
+const int MAX_DEPTH = 5;
 
 void main() {
     vec2 size = vec2(imageSize(resultImage));
@@ -42,32 +42,31 @@ void main() {
             }
             continue;
         }
-        
-        depth = 0;
+
         Chunk curr = chunks[0];
         vec3 off = vec3(0.);
         density = 1.;
-        do {
+        for(depth = 0; depth < MAX_DEPTH; depth++) {
             float halfsize = pow(2, MAX_DEPTH - depth);
             ivec3 np = ivec3(position.x-off.x>=halfsize, position.y-off.y>=halfsize, position.z-off.z>=halfsize);
             ind = np.x + np.y*4 + np.z*2;
             if(((curr.leaves >> ind) & 1) == 1) {
                 curr = chunks[int(curr.ptrs[ind])];
                 off += np * halfsize;
-                depth++;
             } else {
                 density = curr.ptrs[ind];
                 break;
             }
-        } while(depth < MAX_DEPTH);
+        }
         
     } while(density > 0.);
     
     //position -= ray * nextdensity/(nextdensity-density);
     
-    vec3 color = vec3(depth == 0, depth == 1, depth == 2);
+    //vec3 color = vec3(depth == 0, depth == 1, depth == 2);
     //vec3 color = vec3(density == 1., density == -1., density == 0.);
     //vec3 color = vec3(ind/8.);
+    vec3 color = vec3(-density/10.);
 
     vec3 light = normalize(vec3(0.,1.,0.2));
     

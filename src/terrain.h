@@ -7,8 +7,8 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
-#define CHUNK_SIZE 16
-#define MAX_DEPTH 3
+#define CHUNK_SIZE 64
+#define MAX_DEPTH 5
 
 #define OCTREE_SIZE 2048
 

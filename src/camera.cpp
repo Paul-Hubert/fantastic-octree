@@ -5,7 +5,7 @@
 #include "camera.h"
 
 void Camera::init(int width, int height) {
-    speed = 0.002;
+    speed = 0.01;
     setup(width, height);
 }
 

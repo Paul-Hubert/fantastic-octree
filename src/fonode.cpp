@@ -25,6 +25,7 @@ void foNode::prepare(Sync *semaphores) {
     for(uint32_t i = 0; i < signalNodes.size(); i++) {
         semaphoreHandles[i] = semaphores->makeSemaphore();
     }
+    postsync();
 }
 
 void foNode::sync() {
@@ -37,17 +38,22 @@ void foNode::sync() {
         VkSemaphore sem = semaphores->getSemaphore(semaphoreHandles[i]);
         if(signalNodes[i]->prepareSignal(this, sem)) {
             signalCount++;
-            signalSemaphores[signalCount-1] = sem;
+            signalSemaphores.push_back(sem);
         }
     }
     
 }
 
+void foNode::postsync() {
+    waitSemaphores.clear();
+    waitStages.clear();
+    signalSemaphores.clear();
+}
 bool foNode::prepareSignal(foNode *signaler, VkSemaphore sem) {
     if(isActive()) {
         tempWaitCount++;
-        waitSemaphores[tempWaitCount-1] = sem;
-        waitStages[tempWaitCount-1] = waitNodeStages[signaler];
+        waitSemaphores.push_back(sem);
+        waitStages.push_back(waitNodeStages[signaler]);
         return true;
     } else {
         return false;
@@ -57,8 +63,8 @@ bool foNode::prepareSignal(foNode *signaler, VkSemaphore sem) {
 bool foNode::prepareSignal(VkPipelineStageFlags stages, VkSemaphore sem) {
     if(isActive()) {
         tempWaitCount++;
-        waitSemaphores[tempWaitCount-1] = sem;
-        waitStages[tempWaitCount-1] = stages;
+        waitSemaphores.push_back(sem);
+        waitStages.push_back(stages);
         return true;
     } else {
         return false;

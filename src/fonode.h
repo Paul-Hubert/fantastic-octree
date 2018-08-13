@@ -19,6 +19,7 @@ protected :
     void prepare(Sync *semaphores);
     
     void sync();
+    void postsync();
     
     virtual bool isActive() {return true;};
     

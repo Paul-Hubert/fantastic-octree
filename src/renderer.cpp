@@ -359,20 +359,22 @@ void Renderer::reset() {
 }
 
 void Renderer::render(uint32_t i) {
-    
+    sync();
+
     VkSubmitInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     info.commandBufferCount = 1;
     info.pCommandBuffers = &commandBuffers[i];
     std::vector<VkSemaphore> wait = waitSemaphores;
     info.pWaitSemaphores = wait.data();
-    sync();
     info.waitSemaphoreCount = waitCount;
     info.pWaitDstStageMask = waitStages.data();
     info.signalSemaphoreCount = signalCount;
     info.pSignalSemaphores = signalSemaphores.data();
     
     foAssert(win->vkd->vkQueueSubmit(win->device.graphics, 1, &info, VK_NULL_HANDLE));
+
+    postsync();
 }
 
 Renderer::~Renderer() {

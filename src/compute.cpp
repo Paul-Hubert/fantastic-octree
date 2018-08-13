@@ -1,5 +1,6 @@
 #include <QVulkanDeviceFunctions>
 #include <iostream>
+#include <math.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -444,7 +445,7 @@ void Compute::setup() {
             win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
             win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
             
-            win->vkd->vkCmdDispatch(commandBuffers[i], win->swap.extent.width / 8 + 1, win->swap.extent.height / 8 + 1, 1);
+            win->vkd->vkCmdDispatch(commandBuffers[i], (int) ceil(win->swap.extent.width / 8.), (int) ceil(win->swap.extent.height / 8.), 1);
             
             foAssert(win->vkd->vkEndCommandBuffer(commandBuffers[i]));
             
@@ -523,6 +524,7 @@ void Compute::deallocate() {
 
 
 void Compute::render(uint32_t i) {
+    sync();
 
     t++;
     
@@ -531,9 +533,8 @@ void Compute::render(uint32_t i) {
     info.commandBufferCount = 1;
     info.pCommandBuffers = &commandBuffers[i];
     std::vector<VkSemaphore> wait(waitSemaphores);
-    info.pWaitSemaphores = wait.data();
-    sync();
     info.waitSemaphoreCount = waitCount;
+    info.pWaitSemaphores = wait.data();
     info.pWaitDstStageMask = waitStages.data();
     info.signalSemaphoreCount = signalCount;
     info.pSignalSemaphores = signalSemaphores.data();
@@ -553,6 +554,8 @@ void Compute::render(uint32_t i) {
     win->vkd->vkResetFences(win->device.logical, 1, &fence);
     
     foAssert(win->vkd->vkQueueSubmit(win->device.compute, 1, &info, fence));
+
+    postsync();
     
 }
 

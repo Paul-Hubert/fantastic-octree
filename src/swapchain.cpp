@@ -35,7 +35,7 @@ void Swapchain::init() {
     vkGetPhysicalDeviceSurfacePresentModesKHR(win->device.physical, surface, &num, presentModes.data());
     
     VkSurfaceFormatKHR surfaceformat = chooseSwapSurfaceFormat(formats, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, VK_PRESENT_MODE_FIFO_KHR);
     extent = chooseSwapExtent(capabilities);
     format = surfaceformat.format;
      
@@ -168,9 +168,6 @@ uint32_t Swapchain::swap() {
         }
     }
     
-    
-    // Mesure time this takes
-    
     VkResult result;
     do {
         result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? signalSemaphores[0] : VK_NULL_HANDLE, VK_NULL_HANDLE, &current);
@@ -181,9 +178,8 @@ uint32_t Swapchain::swap() {
         } else if(result != VK_SUCCESS) foAssert(result);
     } while(result != VK_SUCCESS);
     
-    
-    // end this
-    
+    postsync();
+
     return current;
 }
 

@@ -20,6 +20,9 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
                    << "VK_LAYER_LUNARG_swapchain"
                    << "VK_LAYER_GOOGLE_unique_objects");
 
+    inst.setExtensions(QByteArrayList()
+                       << "VK_KHR_get_physical_device_properties2");
+
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
 

@@ -7,6 +7,7 @@
 #include "device.h"
 #include "windu.h"
 #include "helper.h"
+#include "loader.inl"
 
 Device::Device(Windu *win) {
     this->win = win;
@@ -219,7 +220,22 @@ uint32_t Device::getScore(QVulkanInstance *inst, VkPhysicalDevice &device) {
     }
     
     if(!required.empty()) score = 0;
-    if(numberOfQueueFamilies < 1) score = 0; // eliminatory
+
+    VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
+    subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+    subgroupProperties.pNext = NULL;
+
+    VkPhysicalDeviceProperties2 physicalDeviceProperties = {};
+    physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    physicalDeviceProperties.pNext = &subgroupProperties;
+
+    INST_LOAD(vkGetPhysicalDeviceProperties2)
+
+    vkGetPhysicalDeviceProperties2(device, &physicalDeviceProperties);
+
+    if(subgroupProperties.subgroupSize < 4) score = 0;
+    if((subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_QUAD_BIT) == 0) score = 0;
+
     std::cout << properties.deviceName << " : " << score << "\n";
     return score;
 }

@@ -3,7 +3,7 @@ SHADERS += $$files(*.frag, true)
 SHADERS += $$files(*.vert, true)
 
 spirv.output = ${QMAKE_FILE_NAME}.spv
-spirv.commands = glslangValidator -V ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
+spirv.commands = glslangValidator -V --target-env vulkan1.1 ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
 spirv.depends = $$SHADERS
 spirv.input = SHADERS
 spirv.variable_out = COMPILED_SHADERS

@@ -10,13 +10,16 @@
 #define CHUNK_SIZE 64
 #define MAX_DEPTH 5
 
-#define OCTREE_SIZE 2048
+#define MAX_CUBES 64*64*64
 
 class Compute;
 
-struct Chunk {
-    float ptrs[8];
-    uint32_t leaves;
+struct Value {
+    float density;
+};
+
+struct Cube {
+    glm::vec4 pos;
 };
 
 class Terrain {
@@ -26,12 +29,10 @@ public:
     ~Terrain();
     
 private:
-    float createChunk(int pos[3], int depth);
-    void readChunk(int ptr, int depth);
+    int createCubes(Cube* cubes);
     
-    float* densities;
-    Chunk* chunks;
-    int offset = 0;
+    Value* densities;
+    std::vector<Cube> cubes;
     
     Compute* comp;
     

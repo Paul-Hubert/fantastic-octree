@@ -7,7 +7,7 @@
 #include "helper.h"
 #include "terrain.h"
 
-Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), size(1024, 768) {
+Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), resman(this), size(1024, 768) {
 
     setSurfaceType(SurfaceType::VulkanSurface);
 
@@ -56,12 +56,16 @@ void Windu::start() {
     swap.init();
 
     if(!loaded) {
+        resman.init();
+        
         camera.init(swap.extent.width, swap.extent.height);
+        
         compute.init();
         renderer.init();
         
         terrain = new Terrain();
         terrain->init(&compute);
+        
     } else {
         camera.reset(swap.extent.width, swap.extent.height);
         compute.reset();
@@ -78,7 +82,7 @@ void Windu::start() {
 }
 
 void Windu::reset() {
-
+    
 }
 
 void Windu::prepareGraph() {

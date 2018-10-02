@@ -19,37 +19,41 @@ public :
     void reset();
     void render(uint32_t i);
     
-    void* allocate(int size);
-    void upload(int offset, int size);
-    void deallocate();
+    virtual bool isActive() override;
+    
+    void* startWriteDensity();
+    void finishWriteDensity();
+    
+    void* startWriteCubes();
+    void finishWriteCubes(int num);
+    
+private :
     
     Windu *win;
     
+    void initDescriptors();
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSet descriptorSet;
+    
+    void initPipeline();
     VkPipelineLayout pipelineLayout;
     VkShaderModule shaderModule;
-    std::vector<VkDescriptorSet> descriptorSet;
     VkPipeline pipeline;
+    
+    void initRest();
     VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<VkImage> images;
-    std::vector<VkImageView> imageViews;
-    VkDeviceSize size = 0;
-    VkDeviceMemory memory;
-    VkBuffer ubo;
-    VkDeviceMemory uniformMemory;
-    
-    VkBuffer octreeBuffer, octreeHostBuffer;
-    VkDeviceMemory octreeMemory, octreeHostMemory;
-    
-    VkCommandPool transferPool;
-    
-    VkSemaphore transferSem;
-    
+    VkCommandBuffer commandBuffer;
     VkFence fence;
     
+    VkBufferView lookupView;
+    
+    VkCommandPool transferPool;
+    VkCommandBuffer transferCmd;
+    VkSemaphore transferSem;
+    
     uint32_t t = 0;
+    
 };
 
 #endif

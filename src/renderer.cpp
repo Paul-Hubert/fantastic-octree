@@ -1,18 +1,154 @@
 #include <iostream>
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+//#define GLM_ENABLE_EXPERIMENTAL
+//#include <glm/gtx/string_cast.hpp>
+
 #include "renderer.h"
 #include "helper.h"
 #include "windu.h"
 
 
+struct Transform {
+    glm::mat4 modelviewproj;
+};
+
 Renderer::Renderer(Windu *win) {
     this->win = win;
 }
+
+
+
+
+
+void Renderer::render(uint32_t i) {
+    sync();
+
+    VkSubmitInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    info.commandBufferCount = 1;
+    info.pCommandBuffers = &commandBuffers[i];
+    std::vector<VkSemaphore> wait = waitSemaphores;
+    info.pWaitSemaphores = wait.data();
+    info.waitSemaphoreCount = waitCount;
+    info.pWaitDstStageMask = waitStages.data();
+    info.signalSemaphoreCount = signalCount;
+    info.pSignalSemaphores = signalSemaphores.data();
+    
+    
+    
+    Transform ubo = {};
+    ubo.modelviewproj = win->camera.getViewProj();
+    
+    Buffer uniform = win->resman.getUniformBuffer();
+    
+    foAssert(win->vkd->vkWaitForFences(win->device.logical, 1, &fence, true, 1000000000000000L));
+    
+    
+    
+    void* data;
+    foAssert(win->vkd->vkMapMemory(win->device.logical, uniform.memory, uniform.offset, uniform.size, 0, &data));
+    memcpy(data, &ubo, uniform.size);
+    win->vkd->vkUnmapMemory(win->device.logical, uniform.memory);
+    
+    
+    
+    foAssert(win->vkd->vkResetFences(win->device.logical, 1, &fence));
+    
+    foAssert(win->vkd->vkQueueSubmit(win->device.graphics, 1, &info, fence));
+
+    postsync();
+}
+
+
+
+
 
 void Renderer::init() {
     // Création de ressources statiques, qui ne dépendent pas de la swapchain, qui ne sont donc pas recréés
     
     // RENDERPASS
+    
+    win->resman.allocateUniformBuffer(sizeof(Transform));
+    
+    
+    initDescriptors();
+    
+    initPipeline();
+    
+    initRest();
+    
+    setup();
+    prepare(&win->sync);
+}
+
+
+
+
+void Renderer::initDescriptors() {
+    
+    VkDescriptorPoolSize poolSize = {};
+    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = 1;
+    
+    VkDescriptorPoolCreateInfo dpinfo = {};
+    dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    dpinfo.poolSizeCount = 1;
+    dpinfo.pPoolSizes = &poolSize;
+    dpinfo.maxSets = 1;
+    foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, VK_NULL_HANDLE, &descriptorPool));
+
+
+
+
+    VkDescriptorSetLayoutBinding slb = {};
+    slb.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    slb.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    slb.descriptorCount = 1;
+    slb.binding = 0;
+    
+    VkDescriptorSetLayoutCreateInfo slinfo = {};
+    slinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    slinfo.bindingCount = 1;
+    slinfo.pBindings = &slb;
+    
+    foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, VK_NULL_HANDLE, &descriptorSetLayout));
+    
+    
+    
+    VkDescriptorSetAllocateInfo allocinfo = {};
+    allocinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocinfo.descriptorSetCount = 1;
+    allocinfo.pSetLayouts = &descriptorSetLayout;
+    allocinfo.descriptorPool = descriptorPool;
+    
+    foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, &descriptorSet));
+    
+    
+    Buffer uniform = win->resman.getUniformBuffer();
+    
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = uniform.buffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = uniform.size;
+    
+    VkWriteDescriptorSet write = {};
+    write = {};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.pBufferInfo = &bufferInfo;
+    write.dstSet = descriptorSet;
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    
+    win->vkd->vkUpdateDescriptorSets(win->device.logical, 1, &write, 0, VK_NULL_HANDLE);
+}
+
+
+void Renderer::initPipeline() {
     
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = win->swap.format;
@@ -45,8 +181,8 @@ void Renderer::init() {
     
     // PIPELINE INFO
     
-    auto vertShaderCode = foLoad("src/rectangle.vert.spv");
-    auto fragShaderCode = foLoad("src/rectangle.frag.spv");
+    auto vertShaderCode = foLoad("src/shaders/rectangle.vert.spv");
+    auto fragShaderCode = foLoad("src/shaders/rectangle.frag.spv");
     
     VkShaderModuleCreateInfo moduleInfo = {};
     moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -74,11 +210,32 @@ void Renderer::init() {
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    
+    
+    // VERTEX INPUT
+    
+    VkVertexInputBindingDescription vertexInputBinding = {};
+    vertexInputBinding.binding = 0;
+    vertexInputBinding.stride = sizeof(Vertex);
+    vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    // Inpute attribute bindings describe shader attribute locations and memory layouts
+    VkVertexInputAttributeDescription vertexInputAttributs;
+    
+    vertexInputAttributs.binding = 0;
+    vertexInputAttributs.location = 0;
+    vertexInputAttributs.format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexInputAttributs.offset = offsetof(Vertex, position);
+
+    
+    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputState.vertexBindingDescriptionCount = 1;
+    vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+    vertexInputState.vertexAttributeDescriptionCount = 1;
+    vertexInputState.pVertexAttributeDescriptions = &vertexInputAttributs;
+    
+    
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -143,75 +300,21 @@ void Renderer::init() {
     
     
     
+    VkPipelineLayoutCreateInfo plinfo = {};
+    plinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    plinfo.setLayoutCount = 1;
+    plinfo.pSetLayouts = &descriptorSetLayout;
     
-    // Descriptors !!!
-    {
-        VkDescriptorPoolSize poolSize = {};
-        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        poolSize.descriptorCount = win->swap.NUM_FRAMES;
-        
-        VkDescriptorPoolCreateInfo dpinfo = {};
-        dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        dpinfo.poolSizeCount = 1;
-        dpinfo.pPoolSizes = &poolSize;
-        dpinfo.maxSets = win->swap.NUM_FRAMES;
-        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, VK_NULL_HANDLE, &descriptorPool));
-    }
-    
-    
-    {
-        VkDescriptorSetLayoutBinding slb = {};
-        slb.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        slb.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        slb.descriptorCount = 1;
-        slb.binding = 0;
-        
-        VkDescriptorSetLayoutCreateInfo slinfo = {};
-        slinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        slinfo.bindingCount = 1;
-        slinfo.pBindings = &slb;
-        
-        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, VK_NULL_HANDLE, &descriptorSetLayout));
-    }
-    
-    
-    {
-        VkPipelineLayoutCreateInfo plinfo = {};
-        plinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        plinfo.setLayoutCount = 1;
-        plinfo.pSetLayouts = &descriptorSetLayout;
-        
-        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, VK_NULL_HANDLE, &pipelineLayout));
-    }
-    
-    
-    {
-        std::vector<VkDescriptorSetLayout> layouts(win->swap.NUM_FRAMES);
-        for(uint32_t i = 0; i<layouts.size(); i++) {
-            layouts[i] = descriptorSetLayout;
-        }
-        
-        VkDescriptorSetAllocateInfo allocinfo = {};
-        allocinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocinfo.descriptorSetCount = win->swap.NUM_FRAMES;
-        allocinfo.pSetLayouts = layouts.data();
-        allocinfo.descriptorPool = descriptorPool;
-        
-        descriptorSet.resize(win->swap.NUM_FRAMES);
-        foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, descriptorSet.data()));
-    }
+    foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, VK_NULL_HANDLE, &pipelineLayout));
     
     
     
     
-    
-    // PIPELINE
-
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pVertexInputState = &vertexInputState;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
@@ -230,54 +333,44 @@ void Renderer::init() {
     win->vkd->vkDestroyShaderModule(win->device.logical, fragShaderModule, VK_NULL_HANDLE);
     win->vkd->vkDestroyShaderModule(win->device.logical, vertShaderModule, VK_NULL_HANDLE);
     
-    
-    {    
-        VkCommandPoolCreateInfo poolInfo = {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = win->device.g_i;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        
-        foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, VK_NULL_HANDLE, &commandPool));
-    }
-    
-    
-    {
-        VkCommandBufferAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandBufferCount = win->swap.NUM_FRAMES;
-        allocInfo.commandPool = commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        
-        commandBuffers.resize(win->swap.NUM_FRAMES);
-        foAssert(win->vkd->vkAllocateCommandBuffers(win->device.logical, &allocInfo, commandBuffers.data()));
-    }
-    
-    setup();
-    prepare(&win->sync);
 }
 
+
+
+void Renderer::initRest() {
+    
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = win->device.g_i;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    
+    foAssert(win->vkd->vkCreateCommandPool(win->device.logical, &poolInfo, VK_NULL_HANDLE, &commandPool));
+
+
+
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandBufferCount = win->swap.NUM_FRAMES;
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    
+    commandBuffers.resize(win->swap.NUM_FRAMES);
+    foAssert(win->vkd->vkAllocateCommandBuffers(win->device.logical, &allocInfo, commandBuffers.data()));
+
+
+
+    VkFenceCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    win->vkd->vkCreateFence(win->device.logical, &info, VK_NULL_HANDLE, &fence);
+    
+}
+
+
+
+
 void Renderer::setup() {
-    
-    std::vector<VkDescriptorImageInfo> imageInfos(win->swap.NUM_FRAMES);
-    for(uint32_t i = 0; i<imageInfos.size(); i++) {
-        imageInfos[i].sampler = VK_NULL_HANDLE;
-        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        imageInfos[i].imageView = win->compute.imageViews[i];
-    }
-    
-    std::vector<VkWriteDescriptorSet> write(win->swap.NUM_FRAMES);
-    for(uint32_t i = 0; i<write.size(); i++) {
-        write[i] = {};
-        write[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[i].descriptorCount = 1;
-        write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        write[i].pImageInfo = &imageInfos[i];
-        write[i].dstSet = descriptorSet[i];
-        write[i].dstBinding = 0;
-        write[i].dstArrayElement = 0;
-    }
-    
-    win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, VK_NULL_HANDLE);
     
     // Création et update ressources qui sont recréés à chaque récréation de la swapchain
     framebuffers.resize(win->swap.NUM_FRAMES);
@@ -301,6 +394,7 @@ void Renderer::setup() {
     renderPassInfo.renderArea.extent = win->swap.extent;
 
     VkClearValue clearColor = {};
+    clearColor.color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
     
@@ -316,6 +410,8 @@ void Renderer::setup() {
     scissor.offset = {0, 0};
     scissor.extent = win->swap.extent;
     
+    Buffer vertexBuffer = win->resman.getVertexBuffer();
+    
     for (size_t i = 0; i < framebuffers.size(); i++) {
 
         framebufferInfo.pAttachments = &(win->swap.imageViews[i]);
@@ -329,13 +425,17 @@ void Renderer::setup() {
 
         win->vkd->vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         
-        win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet[i], 0, 0);
+        win->vkd->vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
         win->vkd->vkCmdSetViewport(commandBuffers[i], 0, 1, &viewport);
         
         win->vkd->vkCmdSetScissor(commandBuffers[i], 0, 1, &scissor);
         
-        win->vkd->vkCmdDraw(commandBuffers[i], 6, 1, 0, 0);
+        // Bind triangle vertex buffer (contains position and colors)
+        VkDeviceSize offsets[1] = { 0 };
+        win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &(vertexBuffer.buffer), offsets);
+        
+        win->vkd->vkCmdDraw(commandBuffers[i], 9003*15*3, 1, 0, 0);
 
         win->vkd->vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -358,28 +458,16 @@ void Renderer::reset() {
     setup();
 }
 
-void Renderer::render(uint32_t i) {
-    sync();
 
-    VkSubmitInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    info.commandBufferCount = 1;
-    info.pCommandBuffers = &commandBuffers[i];
-    std::vector<VkSemaphore> wait = waitSemaphores;
-    info.pWaitSemaphores = wait.data();
-    info.waitSemaphoreCount = waitCount;
-    info.pWaitDstStageMask = waitStages.data();
-    info.signalSemaphoreCount = signalCount;
-    info.pSignalSemaphores = signalSemaphores.data();
-    
-    foAssert(win->vkd->vkQueueSubmit(win->device.graphics, 1, &info, VK_NULL_HANDLE));
 
-    postsync();
-}
+
 
 Renderer::~Renderer() {
     cleanup();
     // Free/Destroy ce qui est créé dans init();
+    
+    
+    win->vkd->vkDestroyFence(win->device.logical, fence, VK_NULL_HANDLE);
     
     win->vkd->vkDestroyCommandPool(win->device.logical, commandPool, VK_NULL_HANDLE);
     

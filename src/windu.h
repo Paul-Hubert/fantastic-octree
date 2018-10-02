@@ -13,6 +13,7 @@
 #include "renderer.h"
 #include "sync.h"
 #include "camera.h"
+#include "resources/resource_manager.h"
 
 class Terrain;
 
@@ -44,6 +45,7 @@ public :
     Renderer renderer;
     Sync sync;
     Camera camera;
+    ResourceManager resman;
     
     Terrain* terrain;
 

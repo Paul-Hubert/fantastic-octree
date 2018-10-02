@@ -5,7 +5,8 @@
 #include "camera.h"
 
 void Camera::init(int width, int height) {
-    speed = 0.01;
+    speed = 0.1;
+    pos = glm::vec3(0.);
     setup(width, height);
 }
 
@@ -36,11 +37,11 @@ void Camera::step(qint64 dt) {
         pos.x -= speed*sin(M_PI/2.0 + yangle)*dt;
         pos.z -= speed*cos(M_PI/2.0 + yangle)*dt;
     } if(up) {
-        pos.x -= speed*sin(yangle)*dt;
-        pos.z -= speed*cos(yangle)*dt;
-    } if(down) {
         pos.x += speed*sin(yangle)*dt;
         pos.z += speed*cos(yangle)*dt;
+    } if(down) {
+        pos.x -= speed*sin(yangle)*dt;
+        pos.z -= speed*cos(yangle)*dt;
     }
     
     if(space) pos.y += speed*dt;
@@ -48,7 +49,7 @@ void Camera::step(qint64 dt) {
 }
 
 glm::mat4 Camera::getViewProj() {
-    return glm::inverse(getView()) * proj;
+    return proj * getView();
 }
 
 glm::mat4 Camera::getProj() {
@@ -57,9 +58,10 @@ glm::mat4 Camera::getProj() {
 
 glm::mat4 Camera::getView() {
     view = glm::mat4(1.0);
+    view = glm::translate(view, -pos);
     view = glm::rotate(view, (float) yangle, glm::vec3(0.0f, 1.0f, 0.0f));
     view = glm::rotate(view, (float) xangle, glm::vec3(1.0f, 0.0f, 0.0f));
-    return view;
+    return glm::inverse(view);
 }
 
 glm::vec3 Camera::getPos() {
@@ -67,8 +69,8 @@ glm::vec3 Camera::getPos() {
 }
 
 void Camera::mouseMoveEvent(QMouseEvent *ev) {
-    yangle += (ev->pos().x() - this->width /2.0) * (M_PI*0.1/180.);
-    xangle = std::max(std::min(xangle - (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.), M_PI/2.), -M_PI/2.);
+    yangle -= (ev->pos().x() - this->width /2.0) * (M_PI*0.1/180.);
+    xangle = std::max(std::min(xangle + (ev->pos().y() - this->height/2.0) * (M_PI*0.1/180.), M_PI/2.), -M_PI/2.);
 }
 
 void Camera::keyPressEvent(QKeyEvent *ev) {

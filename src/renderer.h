@@ -8,6 +8,10 @@
 
 class Windu;
 
+struct Vertex {
+    float position[3];
+};
+
 class Renderer : public foNode {
 public:
     Renderer(Windu *win);
@@ -22,15 +26,25 @@ public:
     Windu *win;
     
 private:
+    
+    void initDescriptors();
+    
+    void initPipeline();
+    
+    void initRest();
+    
+    
     VkRenderPass renderPass;
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
-    std::vector<VkDescriptorSet> descriptorSet;
+    VkDescriptorSet descriptorSet;
     VkPipeline graphicsPipeline;
     VkCommandPool commandPool;
     std::vector<VkFramebuffer> framebuffers;
     std::vector<VkCommandBuffer> commandBuffers;
+    VkFence fence;
+    
 };
 
 #endif /* RENDERER_H */

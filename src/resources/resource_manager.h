@@ -5,11 +5,30 @@
 
 class Windu;
 
-struct Buffer {
+struct FoBuffer {
     VkBuffer buffer;
     VkDeviceMemory memory;
     VkDeviceSize size, offset;
 };
+
+struct FoImage {
+    VkImage image;
+    VkFormat format;
+    VkDeviceMemory memory;
+    VkDeviceSize size, offset;
+};
+
+typedef enum FoResourceName {
+    FO_RESOURCE_DENSITY_BUFFER = 0,
+    FO_RESOURCE_STAGING_DENSITY_BUFFER = 1,
+    FO_RESOURCE_CUBES_BUFFER = 2,
+    FO_RESOURCE_LOOKUP_BUFFER = 3,
+    FO_RESOURCE_VERTEX_BUFFER = 4,
+    FO_RESOURCE_UNIFORM_BUFFER = 5
+} FoResourceName;
+
+#define FO_RESOURCE_BUFFER_COUNT 6
+#define FO_RESOURCE_IMAGE_COUNT 0
 
 class ResourceManager {
 public :
@@ -17,25 +36,16 @@ public :
     ResourceManager(Windu *windu);
     ~ResourceManager();
     
-    
-    void allocateDensityBuffer(VkDeviceSize size);
-    void allocateStagingDensityBuffer(VkDeviceSize size);
-    void allocateCubesBuffer(VkDeviceSize size);
-    void allocateLookupBuffer(VkDeviceSize size);
-    void allocateVertexBuffer(VkDeviceSize size);
-    void allocateUniformBuffer(VkDeviceSize size);
-    Buffer getDensityBuffer();
-    Buffer getStagingDensityBuffer();
-    Buffer getCubesBuffer();
-    Buffer getLookupBuffer();
-    Buffer getVertexBuffer();
-    Buffer getUniformBuffer();
+    void allocateResource(FoResourceName name, VkDeviceSize size);
+    FoBuffer* getBuffer(FoResourceName name);
+    FoImage* getImage(FoResourceName name);
     
 private :
     
     Windu* win;
     
-    Buffer density, stagingDensity, cubes, lookup, vertex, uniform;
+    FoBuffer buffers[FO_RESOURCE_BUFFER_COUNT];
+    FoImage images[FO_RESOURCE_IMAGE_COUNT];
     
 };
 

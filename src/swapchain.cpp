@@ -122,7 +122,7 @@ void Swapchain::init() {
 
 void Swapchain::reset() {
     
-     win->vkd->vkDeviceWaitIdle(win->device.logical);
+    win->vkd->vkDeviceWaitIdle(win->device.logical);
     
     for (auto imageView : imageViews) {
         win->vkd->vkDestroyImageView(win->device.logical, imageView, nullptr);

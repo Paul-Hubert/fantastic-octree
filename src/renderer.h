@@ -17,6 +17,7 @@ public:
     Renderer(Windu *win);
     ~Renderer();
     
+    void preinit();
     void init();
     void setup();
     void cleanup();

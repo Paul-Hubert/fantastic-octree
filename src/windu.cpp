@@ -56,6 +56,12 @@ void Windu::start() {
     swap.init();
 
     if(!loaded) {
+        
+        // Specify resources to be allocated
+        compute.preinit();
+        renderer.preinit();
+        
+        // Allocate memory
         resman.init();
         
         camera.init(swap.extent.width, swap.extent.height);
@@ -66,17 +72,15 @@ void Windu::start() {
         terrain = new Terrain();
         terrain->init(&compute);
         
-    } else {
-        camera.reset(swap.extent.width, swap.extent.height);
-        compute.reset();
-        renderer.reset();
-    }
-
-    if(!loaded) {
         sync.init();
         loaded = true;
         timer.start();
         requestUpdate();
+        
+    } else {
+        camera.reset(swap.extent.width, swap.extent.height);
+        compute.reset();
+        renderer.reset();
     }
 
 }
@@ -167,6 +171,7 @@ bool Windu::event(QEvent *e) {
         // layer scream. The solution is to listen to the PlatformSurface events.
         case QEvent::PlatformSurface:
             if (static_cast<QPlatformSurfaceEvent *>(e)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+                qInfo("Swapchain resetting");
                 swap.reset();
             }
             break;

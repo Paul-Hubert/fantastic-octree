@@ -15,25 +15,30 @@ Compute::Compute(Windu *win) {
     this->win = win;
 }
 
+void Compute::preinit() {
+    
+    win->resman.allocateResource(FO_RESOURCE_CUBES_BUFFER, MAX_CUBES * sizeof(Cube));
+    
+    win->resman.allocateResource(FO_RESOURCE_STAGING_DENSITY_BUFFER, CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
+    
+    win->resman.allocateResource(FO_RESOURCE_DENSITY_BUFFER, CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
+    
+    win->resman.allocateResource(FO_RESOURCE_VERTEX_BUFFER, MAX_CUBES * 15 * sizeof(Vertex));
+    
+    win->resman.allocateResource(FO_RESOURCE_LOOKUP_BUFFER, 4096*sizeof(char));
+    
+}
+
+
 void Compute::init() {
     
-    win->resman.allocateCubesBuffer(MAX_CUBES * sizeof(Cube));
-    
-    win->resman.allocateStagingDensityBuffer(CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
-    
-    win->resman.allocateDensityBuffer(CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
-    
-    win->resman.allocateVertexBuffer(MAX_CUBES * 15 * sizeof(Vertex));
-    
-    win->resman.allocateLookupBuffer(4096*sizeof(char));
-    
     {
-        Buffer lookup = win->resman.getLookupBuffer();
+        FoBuffer* lookup = win->resman.getBuffer(FO_RESOURCE_LOOKUP_BUFFER);
         VkBufferViewCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
         info.offset = 0;
-        info.range = lookup.size*sizeof(char);
-        info.buffer = lookup.buffer;
+        info.range = lookup->size*sizeof(char);
+        info.buffer = lookup->buffer;
         info.format = VK_FORMAT_R8_SINT;
         
         
@@ -104,17 +109,17 @@ void Compute::render(uint32_t i) {
 
 void* Compute::startWriteDensity() {
     
-    Buffer density = win->resman.getStagingDensityBuffer();
+    FoBuffer* density = win->resman.getBuffer(FO_RESOURCE_STAGING_DENSITY_BUFFER);
     
     void* ptr;
-    foAssert(win->vkd->vkMapMemory(win->device.logical, density.memory, density.offset, density.size, 0, &ptr));
+    foAssert(win->vkd->vkMapMemory(win->device.logical, density->memory, density->offset, density->size, 0, &ptr));
     
     return ptr;
 }
 
 void Compute::finishWriteDensity() {
     
-    win->vkd->vkUnmapMemory(win->device.logical, win->resman.getStagingDensityBuffer().memory);
+    win->vkd->vkUnmapMemory(win->device.logical, win->resman.getBuffer(FO_RESOURCE_STAGING_DENSITY_BUFFER)->memory);
     
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -125,9 +130,9 @@ void Compute::finishWriteDensity() {
     VkBufferCopy copy = {};
     copy.dstOffset = 0;
     copy.srcOffset = 0;
-    copy.size = win->resman.getDensityBuffer().size;
+    copy.size = win->resman.getBuffer(FO_RESOURCE_DENSITY_BUFFER)->size;
     
-    win->vkd->vkCmdCopyBuffer(transferCmd, win->resman.getStagingDensityBuffer().buffer, win->resman.getDensityBuffer().buffer, 1, &copy);
+    win->vkd->vkCmdCopyBuffer(transferCmd, win->resman.getBuffer(FO_RESOURCE_STAGING_DENSITY_BUFFER)->buffer, win->resman.getBuffer(FO_RESOURCE_DENSITY_BUFFER)->buffer, 1, &copy);
     
     foAssert(win->vkd->vkEndCommandBuffer(transferCmd));
     
@@ -146,10 +151,10 @@ void Compute::finishWriteDensity() {
 
 void * Compute::startWriteCubes() {
     
-    Buffer cubes = win->resman.getCubesBuffer();
+    FoBuffer* cubes = win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER);
     
     void* ptr;
-    foAssert(win->vkd->vkMapMemory(win->device.logical, cubes.memory, cubes.offset, cubes.size, 0, &ptr));
+    foAssert(win->vkd->vkMapMemory(win->device.logical, cubes->memory, cubes->offset, cubes->size, 0, &ptr));
     
     return ptr;
     
@@ -159,7 +164,7 @@ void Compute::finishWriteCubes(int num) {
     
     std::cout << num << std::endl;
     
-    win->vkd->vkUnmapMemory(win->device.logical, win->resman.getCubesBuffer().memory);
+    win->vkd->vkUnmapMemory(win->device.logical, win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER)->memory);
     
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -239,24 +244,24 @@ void Compute::initDescriptors() {
     
     foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, &descriptorSet));
 
-    Buffer density = win->resman.getDensityBuffer(),
-            vertex = win->resman.getVertexBuffer(),
-             cubes = win->resman.getCubesBuffer();
+    FoBuffer* density = win->resman.getBuffer(FO_RESOURCE_DENSITY_BUFFER);
+    FoBuffer* vertex = win->resman.getBuffer(FO_RESOURCE_VERTEX_BUFFER);
+    FoBuffer* cubes = win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER);
     
     VkDescriptorBufferInfo cubesInfo = {};
-    cubesInfo.buffer = cubes.buffer;
+    cubesInfo.buffer = cubes->buffer;
     cubesInfo.offset = 0;
-    cubesInfo.range = cubes.size;         
+    cubesInfo.range = cubes->size;         
     
     VkDescriptorBufferInfo densityInfo = {};
-    densityInfo.buffer = density.buffer;
+    densityInfo.buffer = density->buffer;
     densityInfo.offset = 0;
-    densityInfo.range = density.size;
+    densityInfo.range = density->size;
     
     VkDescriptorBufferInfo vertexInfo = {};
-    vertexInfo.buffer = vertex.buffer;
+    vertexInfo.buffer = vertex->buffer;
     vertexInfo.offset = 0;
-    vertexInfo.range = vertex.size;
+    vertexInfo.range = vertex->size;
     
     std::vector<VkWriteDescriptorSet> write(4);
     write[0] = {};
@@ -394,12 +399,12 @@ void Compute::initRest() {
     
     {
         
-        Buffer lookup = win->resman.getLookupBuffer();
+        FoBuffer* lookup = win->resman.getBuffer(FO_RESOURCE_LOOKUP_BUFFER);
         void* ptr;
         QByteArray bytes = foLoad("src/resources/mclookup.bin");
-        foAssert(win->vkd->vkMapMemory(win->device.logical, lookup.memory, lookup.offset, lookup.size, 0, &ptr));
-        memcpy(ptr, bytes.constData(), lookup.size);
-        win->vkd->vkUnmapMemory(win->device.logical, lookup.memory);
+        foAssert(win->vkd->vkMapMemory(win->device.logical, lookup->memory, lookup->offset, lookup->size, 0, &ptr));
+        memcpy(ptr, bytes.constData(), lookup->size);
+        win->vkd->vkUnmapMemory(win->device.logical, lookup->memory);
         
     }
     

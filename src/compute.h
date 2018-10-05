@@ -13,6 +13,7 @@ class Compute : public foNode {
 public :
     Compute(Windu *win);
     ~Compute();
+    void preinit();
     void init();
     void setup();
     void cleanup();

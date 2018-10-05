@@ -42,16 +42,16 @@ void Renderer::render(uint32_t i) {
     Transform ubo = {};
     ubo.modelviewproj = win->camera.getViewProj();
     
-    Buffer uniform = win->resman.getUniformBuffer();
+    FoBuffer* uniform = win->resman.getBuffer(FO_RESOURCE_UNIFORM_BUFFER);
     
     foAssert(win->vkd->vkWaitForFences(win->device.logical, 1, &fence, true, 1000000000000000L));
     
     
     
     void* data;
-    foAssert(win->vkd->vkMapMemory(win->device.logical, uniform.memory, uniform.offset, uniform.size, 0, &data));
-    memcpy(data, &ubo, uniform.size);
-    win->vkd->vkUnmapMemory(win->device.logical, uniform.memory);
+    foAssert(win->vkd->vkMapMemory(win->device.logical, uniform->memory, uniform->offset, uniform->size, 0, &data));
+    memcpy(data, &ubo, uniform->size);
+    win->vkd->vkUnmapMemory(win->device.logical, uniform->memory);
     
     
     
@@ -63,16 +63,17 @@ void Renderer::render(uint32_t i) {
 }
 
 
+void Renderer::preinit() {
 
+    win->resman.allocateResource(FO_RESOURCE_UNIFORM_BUFFER, sizeof(Transform));
+    
+}
 
 
 void Renderer::init() {
     // Création de ressources statiques, qui ne dépendent pas de la swapchain, qui ne sont donc pas recréés
     
     // RENDERPASS
-    
-    win->resman.allocateUniformBuffer(sizeof(Transform));
-    
     
     initDescriptors();
     
@@ -127,12 +128,12 @@ void Renderer::initDescriptors() {
     foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, &descriptorSet));
     
     
-    Buffer uniform = win->resman.getUniformBuffer();
+    FoBuffer* uniform = win->resman.getBuffer(FO_RESOURCE_UNIFORM_BUFFER);
     
     VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = uniform.buffer;
+    bufferInfo.buffer = uniform->buffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = uniform.size;
+    bufferInfo.range = uniform->size;
     
     VkWriteDescriptorSet write = {};
     write = {};
@@ -410,7 +411,7 @@ void Renderer::setup() {
     scissor.offset = {0, 0};
     scissor.extent = win->swap.extent;
     
-    Buffer vertexBuffer = win->resman.getVertexBuffer();
+    FoBuffer* vertexBuffer = win->resman.getBuffer(FO_RESOURCE_VERTEX_BUFFER);
     
     for (size_t i = 0; i < framebuffers.size(); i++) {
 
@@ -433,7 +434,7 @@ void Renderer::setup() {
         
         // Bind triangle vertex buffer (contains position and colors)
         VkDeviceSize offsets[1] = { 0 };
-        win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &(vertexBuffer.buffer), offsets);
+        win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &(vertexBuffer->buffer), offsets);
         
         win->vkd->vkCmdDraw(commandBuffers[i], 9003*15*3, 1, 0, 0);
 

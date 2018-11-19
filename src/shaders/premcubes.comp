@@ -1,0 +1,109 @@
+#version 450
+
+#extension GL_KHR_shader_subgroup_arithmetic: enable
+#extension GL_KHR_shader_subgroup_ballot: enable
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+const uint trinum[256] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 2, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3, 2, 3, 3, 2, 3, 4, 4, 3, 3, 4, 4, 3, 4, 5, 5, 2, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 4, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 5, 4, 5, 3, 2, 3, 4, 4, 3, 4, 5, 3, 2, 4, 5, 5, 4, 5, 2, 4, 1, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3, 2, 3, 3, 4, 3, 4, 4, 5, 3, 2, 4, 3, 4, 3, 5, 2, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 4, 3, 4, 4, 3, 4, 5, 5, 4, 4, 3, 5, 2, 5, 4, 2, 1, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 2, 3, 3, 2, 3, 4, 4, 5, 4, 5, 5, 2, 4, 3, 5, 4, 3, 2, 4, 1, 3, 4, 4, 5, 4, 5, 3, 4, 4, 5, 5, 2, 3, 4, 2, 1, 2, 3, 3, 2, 3, 4, 2, 1, 3, 2, 4, 1, 2, 1, 1, 0};
+
+const int CHUNK_SIZE = 64;
+
+struct Cube {
+    uint val;
+    uint ind;
+    uint s1;
+    uint s2;
+    vec4 pos;
+};
+
+layout(std430, binding = 0) coherent buffer Cubes {
+    uint out_size;
+    uint out_tri_size;
+    Cube cubes[];
+};
+
+struct Value {
+    float density;
+};
+
+layout(std430, binding = 1) readonly buffer Values {
+    Value values[];
+};
+
+layout(std430, binding = 2) buffer IndirectDispatch {
+    uint x;
+    uint y;
+    uint z;
+};
+
+layout(std430, binding = 3) buffer IndirectDraw {
+    uint vertexCount;
+    uint instanceCount;
+    uint firstVertex;
+    uint firstInstance;
+};
+
+void main() {
+    
+    
+    if(gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0 && gl_GlobalInvocationID.z == 0) {
+        out_size = 0;
+        out_tri_size = 0;
+    }
+    memoryBarrier();
+    barrier();
+    
+    
+    uint val = (values[((gl_GlobalInvocationID.x  ) * CHUNK_SIZE + gl_GlobalInvocationID.y  ) * CHUNK_SIZE + gl_GlobalInvocationID.z  ].density>0 ? 1:0)
+            | (values[((gl_GlobalInvocationID.x+1) * CHUNK_SIZE + gl_GlobalInvocationID.y  ) * CHUNK_SIZE + gl_GlobalInvocationID.z  ].density>0 ? 2:0)
+            | (values[((gl_GlobalInvocationID.x+1) * CHUNK_SIZE + gl_GlobalInvocationID.y  ) * CHUNK_SIZE + gl_GlobalInvocationID.z+1].density>0 ? 4:0)
+            | (values[((gl_GlobalInvocationID.x  ) * CHUNK_SIZE + gl_GlobalInvocationID.y  ) * CHUNK_SIZE + gl_GlobalInvocationID.z+1].density>0 ? 8:0)
+            | (values[((gl_GlobalInvocationID.x  ) * CHUNK_SIZE + gl_GlobalInvocationID.y+1) * CHUNK_SIZE + gl_GlobalInvocationID.z  ].density>0 ? 16:0)
+            | (values[((gl_GlobalInvocationID.x+1) * CHUNK_SIZE + gl_GlobalInvocationID.y+1) * CHUNK_SIZE + gl_GlobalInvocationID.z  ].density>0 ? 32:0)
+            | (values[((gl_GlobalInvocationID.x+1) * CHUNK_SIZE + gl_GlobalInvocationID.y+1) * CHUNK_SIZE + gl_GlobalInvocationID.z+1].density>0 ? 64:0)
+            | (values[((gl_GlobalInvocationID.x  ) * CHUNK_SIZE + gl_GlobalInvocationID.y+1) * CHUNK_SIZE + gl_GlobalInvocationID.z+1].density>0 ? 128:0);
+            
+    uint num = trinum[val];
+    if(num > 0 && !(gl_GlobalInvocationID.x >= CHUNK_SIZE-1 || gl_GlobalInvocationID.y >= CHUNK_SIZE-1 || gl_GlobalInvocationID.z >= CHUNK_SIZE-1)) {
+    
+        uint local_index = subgroupExclusiveAdd(1);
+        uint local_tri_index = subgroupExclusiveAdd(num);
+        
+        // Find out which active invocation has the highest ID
+        uint highestActiveID = subgroupBallotFindMSB(subgroupBallot(true));
+
+        uint global_index = 0;
+        uint global_tri_index = 0;
+
+        // If we're the highest active ID
+        if (highestActiveID == gl_SubgroupInvocationID) {
+            // We need to carve out a slice of out_triangles for our triangle
+
+            global_index = atomicAdd(out_size, local_index + 1);
+            global_tri_index = atomicAdd(out_tri_size, local_tri_index + num);
+        }
+
+        global_index = subgroupMax(global_index);
+        global_tri_index = subgroupMax(global_tri_index);
+        
+        Cube cube = {val, global_tri_index + local_tri_index, 0, 0, vec4(gl_GlobalInvocationID.xyz, 1)};
+        
+        cubes[global_index + local_index] = cube;
+        
+    }
+    
+    barrier();
+    memoryBarrier();
+    if(gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0 && gl_GlobalInvocationID.z == 0) {
+        x = out_size;
+        y = 1;
+        z = 1;
+        vertexCount = out_tri_size*32;
+        instanceCount = 1;
+        firstVertex = 0;
+        firstInstance = 0;
+    }
+    
+    
+}

@@ -110,7 +110,7 @@ void ResourceManager::init() {
         VkMemoryAllocateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         info.allocationSize = (memreq.size/memreq.alignment + 1) * memreq.alignment * 4;
-        win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &info.memoryTypeIndex);
+        win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &info.memoryTypeIndex);
         
         foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, VK_NULL_HANDLE, &(cubes->memory)));
         
@@ -204,6 +204,66 @@ void ResourceManager::init() {
         foAssert(win->vkd->vkBindBufferMemory(win->device.logical, uniform->buffer, uniform->memory, 0));
         
     }
+    
+    {
+    
+        FoBuffer* dispatch = getBuffer(FO_RESOURCE_INDIRECT_DISPATCH);
+        
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.queueFamilyIndexCount = 1;
+        bufferInfo.pQueueFamilyIndices = &win->device.c_i;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        bufferInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        bufferInfo.size = dispatch->size;
+        
+        foAssert(win->vkd->vkCreateBuffer(win->device.logical, &bufferInfo, VK_NULL_HANDLE, &(dispatch->buffer)));
+        
+        VkMemoryRequirements memreq;
+        win->vkd->vkGetBufferMemoryRequirements(win->device.logical, dispatch->buffer, &memreq);
+        
+        VkMemoryAllocateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        info.allocationSize = (memreq.size/memreq.alignment + 1) * memreq.alignment * 4;
+        win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &info.memoryTypeIndex);
+        
+        foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, VK_NULL_HANDLE, &(dispatch->memory)));
+        
+        foAssert(win->vkd->vkBindBufferMemory(win->device.logical, dispatch->buffer, dispatch->memory, 0));
+        
+    }
+    
+    {
+    
+        FoBuffer* dispatch = getBuffer(FO_RESOURCE_INDIRECT_DRAW);
+        
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        std::vector<uint32_t> qi;
+        qi.push_back(win->device.c_i);
+        if(win->device.g_i != win->device.c_i) qi.push_back(win->device.g_i);
+        bufferInfo.sharingMode = qi.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+        bufferInfo.queueFamilyIndexCount = qi.size();
+        bufferInfo.pQueueFamilyIndices = qi.data();
+        bufferInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        bufferInfo.size = dispatch->size;
+        
+        foAssert(win->vkd->vkCreateBuffer(win->device.logical, &bufferInfo, VK_NULL_HANDLE, &(dispatch->buffer)));
+        
+        VkMemoryRequirements memreq;
+        win->vkd->vkGetBufferMemoryRequirements(win->device.logical, dispatch->buffer, &memreq);
+        
+        VkMemoryAllocateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        info.allocationSize = (memreq.size/memreq.alignment + 1) * memreq.alignment * 4;
+        win->device.getMemoryType(memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &info.memoryTypeIndex);
+        
+        foAssert(win->vkd->vkAllocateMemory(win->device.logical, &info, VK_NULL_HANDLE, &(dispatch->memory)));
+        
+        foAssert(win->vkd->vkBindBufferMemory(win->device.logical, dispatch->buffer, dispatch->memory, 0));
+        
+    }
+    
 }
 
 

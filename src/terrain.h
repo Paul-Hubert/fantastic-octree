@@ -29,10 +29,8 @@ public:
     ~Terrain();
     
 private:
-    int createCubes(Cube* cubes);
     
     Value* densities;
-    std::vector<Cube> cubes;
     
     Compute* comp;
     

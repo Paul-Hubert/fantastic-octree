@@ -9,6 +9,7 @@
 #include "renderer.h"
 #include "helper.h"
 #include "windu.h"
+#include "terrain.h"
 
 
 struct Transform {
@@ -436,7 +437,9 @@ void Renderer::setup() {
         VkDeviceSize offsets[1] = { 0 };
         win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &(vertexBuffer->buffer), offsets);
         
-        win->vkd->vkCmdDraw(commandBuffers[i], 9003*15*3, 1, 0, 0);
+        FoBuffer* indirect = win->resman.getBuffer(FO_RESOURCE_INDIRECT_DRAW);
+        
+        win->vkd->vkCmdDrawIndirect(commandBuffers[i], indirect->buffer, 0, 1, 0);
 
         win->vkd->vkCmdEndRenderPass(commandBuffers[i]);
 

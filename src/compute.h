@@ -4,6 +4,8 @@
 #include <QVulkanInstance>
 
 #include "fonode.h"
+#include "mcubes.h"
+#include "premcubes.h"
 
 class Windu;
 
@@ -31,23 +33,13 @@ public :
 private :
     
     Windu *win;
-    
-    void initDescriptors();
-    VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet;
-    
-    void initPipeline();
-    VkPipelineLayout pipelineLayout;
-    VkShaderModule shaderModule;
-    VkPipeline pipeline;
+    PreMCubes premcubes;
+    MCubes mcubes;
     
     void initRest();
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
     VkFence fence;
-    
-    VkBufferView lookupView;
     
     VkCommandPool transferPool;
     VkCommandBuffer transferCmd;

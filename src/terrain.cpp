@@ -29,7 +29,7 @@ void Terrain::init(Compute* comp) {
     
     comp->finishWriteDensity();
     
-    comp->finishWriteCubes(createCubes(static_cast<Cube*>(comp->startWriteCubes())));
+    //comp->finishWriteCubes(createCubes(static_cast<Cube*>(comp->startWriteCubes())));
     
 }
 
@@ -45,6 +45,7 @@ int intpow(int x, int n) {
     return wow;
 }
 
+/*
 int Terrain::createCubes(Cube* cubes) {
     
     int offset = 0;
@@ -73,6 +74,7 @@ int Terrain::createCubes(Cube* cubes) {
     
     return offset;
 }
+*/
 
 Terrain::~Terrain() {
     delete[] densities;

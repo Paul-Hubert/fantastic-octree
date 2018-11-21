@@ -1,7 +1,8 @@
+#include "sync.h"
+
 #include <iostream>
 
 #include "helper.h"
-#include "sync.h"
 #include "windu.h"
 
 Sync::Sync(Windu *win) {
@@ -13,11 +14,9 @@ void Sync::init() {
     
     semaphores.resize(Snum * width);
     
-    VkSemaphoreCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     for(uint32_t i = 0; i < Snum; i++) {
         for(uint32_t j = 0; j < width; j++) {
-            foAssert(win->vkd->vkCreateSemaphore(win->device.logical, &info, nullptr, &semaphores[i*width+j]));
+            semaphores[i*width+j] = win->device.logical.createSemaphore({});
         }
     }
 }
@@ -28,10 +27,8 @@ uint32_t Sync::makeSemaphore() {
         std::cout << "Runtime creation of semaphores\n";
         semaphores.resize(Snum*width);
         
-        VkSemaphoreCreateInfo info = {};
-        info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         for(uint32_t i = 0; i < width; i++) {
-            win->vkd->vkCreateSemaphore(win->device.logical, &info, nullptr, &semaphores[(Snum-1)*width+i]);
+            semaphores[(Snum-1)*width+i] = win->device.logical.createSemaphore({});
         }
     }
     return Snum - 1;
@@ -46,20 +43,21 @@ uint32_t Sync::makeFence(bool signaled) {
     
     VkFenceCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    info.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+    vk::FenceCreateFlags flags = signaled ? static_cast<vk::FenceCreateFlags>(0) : vk::FenceCreateFlagBits::eSignaled;
     for(uint32_t i = 0; i < width; i++) {
-        win->vkd->vkCreateFence(win->device.logical, &info, nullptr, &fences[(Fnum-1)*width+i]);
+        fences[(Fnum-1)*width+i] = win->device.logical.createFence({flags});
     }
     
     return Fnum - 1;
 }
 
 
-VkSemaphore Sync::getSemaphore(uint32_t i) {
+vk::Semaphore Sync::getSemaphore(uint32_t i)
+{
     return semaphores[i*width+frame];
 }
 
-VkFence Sync::getFence(uint32_t i) {
+vk::Fence Sync::getFence(uint32_t i) {
     return fences[i*width+frame];
 }
 
@@ -70,12 +68,12 @@ void Sync::step() {
 Sync::~Sync() {
     for(uint32_t i = 0; i < Snum; i++) {
         for(uint32_t j = 0; j < width; j++) {
-            win->vkd->vkDestroySemaphore(win->device.logical, semaphores[i*width+j], nullptr);
+            win->device.logical.destroy(semaphores[i*width+j]);
         }
     }
     for(uint32_t i = 0; i < Fnum; i++) {
         for(uint32_t j = 0; j < width; j++) {
-            win->vkd->vkDestroyFence(win->device.logical, fences[i*width+j], nullptr);
+            win->device.logical.destroy(fences[i*width+j]);
         }
     }
 }

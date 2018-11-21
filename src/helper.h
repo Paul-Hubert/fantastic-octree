@@ -1,10 +1,10 @@
 #ifndef HELPER_H
 #define HELPER_H
 
+
+#include <vulkan/vulkan.hpp>
 #include <QString>
 #include <QByteArray>
-
-#include <vulkan/vulkan_core.h>
 
 void foAssert(VkResult result);
 

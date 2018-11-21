@@ -24,5 +24,7 @@ CONFIG += debug
 QMAKE_EXTRA_COMPILERS += spirv
 
 CONFIG += vulkan
+CONFIG += exceptions
+LIBS += -lvulkan
 INCLUDEPATH += $$(VULKAN_SDK)/Include
 INCLUDEPATH += D:/Qt

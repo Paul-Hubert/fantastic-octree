@@ -1,6 +1,7 @@
 #ifndef COMPUTE_H
 #define COMPUTE_H
 
+#include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
 
 #include "fonode.h"
@@ -37,13 +38,13 @@ private :
     MCubes mcubes;
     
     void initRest();
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
-    VkFence fence;
+    vk::CommandPool commandPool;
+    vk::CommandBuffer commandBuffer;
+    vk::Fence fence;
     
-    VkCommandPool transferPool;
-    VkCommandBuffer transferCmd;
-    VkSemaphore transferSem;
+    vk::CommandPool transferPool;
+    vk::CommandBuffer transferCmd;
+    vk::Semaphore transferSem;
     
     uint32_t t = 0;
     

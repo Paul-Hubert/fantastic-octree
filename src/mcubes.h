@@ -1,6 +1,7 @@
 #ifndef MCUBES_H
 #define MCUBES_H
 
+#include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
 
 #include "helper.h"

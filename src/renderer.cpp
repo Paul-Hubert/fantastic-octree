@@ -1,12 +1,12 @@
-#include <iostream>
+#include "renderer.h"
 
+#include <iostream>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 //#define GLM_ENABLE_EXPERIMENTAL
 //#include <glm/gtx/string_cast.hpp>
 
-#include "renderer.h"
 #include "helper.h"
 #include "windu.h"
 #include "terrain.h"
@@ -31,12 +31,14 @@ void Renderer::render(uint32_t i) {
     info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     info.commandBufferCount = 1;
     info.pCommandBuffers = &commandBuffers[i];
-    std::vector<VkSemaphore> wait = waitSemaphores;
+    std::vector<VkSemaphore> wait(waitSemaphores.begin(), waitSemaphores.end());
     info.pWaitSemaphores = wait.data();
     info.waitSemaphoreCount = waitCount;
-    info.pWaitDstStageMask = waitStages.data();
+    std::vector<VkPipelineStageFlags> stages(waitStages.begin(), waitStages.end());
+    info.pWaitDstStageMask = stages.data();
     info.signalSemaphoreCount = signalCount;
-    info.pSignalSemaphores = signalSemaphores.data();
+    std::vector<VkSemaphore> signalSems(signalSemaphores.begin(), signalSemaphores.end());
+    info.pSignalSemaphores = signalSems.data();
     
     
     
@@ -435,7 +437,8 @@ void Renderer::setup() {
         
         // Bind triangle vertex buffer (contains position and colors)
         VkDeviceSize offsets[1] = { 0 };
-        win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &(vertexBuffer->buffer), offsets);
+        VkBuffer buf = vertexBuffer->buffer;
+        win->vkd->vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &buf, offsets);
         
         FoBuffer* indirect = win->resman.getBuffer(FO_RESOURCE_INDIRECT_DRAW);
         

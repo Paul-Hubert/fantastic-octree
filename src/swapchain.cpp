@@ -1,6 +1,8 @@
+#include "swapchain.h"
+
 #include <QVulkanFunctions>
 #include <iostream>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <time.h>
 
 #include "windu.h"
@@ -155,7 +157,8 @@ uint32_t Swapchain::swap() {
         info.pImageIndices = &current;
         info.pResults = nullptr;
         info.waitSemaphoreCount = waitCount;
-        info.pWaitSemaphores = waitSemaphores.data();
+        std::vector<VkSemaphore> sems(waitSemaphores.begin(), waitSemaphores.end());
+        info.pWaitSemaphores = sems.data();
         
         // This will display the image
         VkResult result = vkQueuePresentKHR(win->device.graphics, &info);
@@ -170,7 +173,7 @@ uint32_t Swapchain::swap() {
     
     VkResult result;
     do {
-        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? signalSemaphores[0] : VK_NULL_HANDLE, VK_NULL_HANDLE, &current);
+        result = vkAcquireNextImageKHR(win->device.logical, swapchain, 10000000000000L, signalCount > 0 ? static_cast<VkSemaphore>(signalSemaphores[0]) : VK_NULL_HANDLE, VK_NULL_HANDLE, &current);
         if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             std::cout << "resize required ------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
             win->vkd->vkDeviceWaitIdle(win->device.logical);

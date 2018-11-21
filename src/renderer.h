@@ -1,9 +1,9 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include <vulkan/vulkan.hpp>
 #include <QString>
 
-#include "vulkan/vulkan.h"
 #include "fonode.h"
 
 class Windu;

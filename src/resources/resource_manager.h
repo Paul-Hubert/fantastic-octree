@@ -1,21 +1,23 @@
 #ifndef RESOURCEMANAGER_H
 #define RESOURCEMANAGER_H
 
+#include "vulkan/vulkan.hpp"
 #include <QVulkanFunctions>
+#include <set>
 
 class Windu;
 
 struct FoBuffer {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-    VkDeviceSize size, offset;
+    vk::Buffer buffer;
+    vk::DeviceMemory memory;
+    vk::DeviceSize size, offset;
 };
 
 struct FoImage {
-    VkImage image;
-    VkFormat format;
-    VkDeviceMemory memory;
-    VkDeviceSize size, offset;
+    vk::Image image;
+    vk::Format format;
+    vk::DeviceMemory memory;
+    vk::DeviceSize size, offset;
 };
 
 typedef enum FoResourceName {
@@ -38,7 +40,7 @@ public :
     ResourceManager(Windu *windu);
     ~ResourceManager();
     
-    void allocateResource(FoResourceName name, VkDeviceSize size);
+    void allocateResource(FoResourceName name, vk::DeviceSize size);
     FoBuffer* getBuffer(FoResourceName name);
     FoImage* getImage(FoResourceName name);
     
@@ -48,6 +50,8 @@ private :
     
     FoBuffer buffers[FO_RESOURCE_BUFFER_COUNT];
     FoImage images[FO_RESOURCE_IMAGE_COUNT];
+    
+    void initBuffer(FoResourceName name, std::set<uint32_t> si, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags memoryPropertyFlags);
     
 };
 

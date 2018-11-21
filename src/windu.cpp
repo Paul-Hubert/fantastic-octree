@@ -1,9 +1,10 @@
+#include "windu.h"
+
 #include <stdio.h>
 #include <QResizeEvent>
 #include <iostream>
 #include <QSurface>
 
-#include "windu.h"
 #include "helper.h"
 #include "terrain.h"
 
@@ -35,7 +36,7 @@ Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(t
 }
 
 Windu::~Windu() {
-    vkd->vkDeviceWaitIdle(device.logical);
+    device.logical.waitIdle();
     delete(terrain);
     printf("Destroying\n");
 }
@@ -91,10 +92,10 @@ void Windu::reset() {
 
 void Windu::prepareGraph() {
 
-    compute.signalTo(&renderer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    compute.signalTo(&renderer, vk::PipelineStageFlagBits::eFragmentShader);
 
-    swap.signalTo(&renderer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    renderer.signalTo(&swap, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    swap.signalTo(&renderer, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+    renderer.signalTo(&swap, vk::PipelineStageFlagBits::eTopOfPipe);
 
 }
 

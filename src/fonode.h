@@ -1,6 +1,7 @@
 #ifndef FONODE_H
 #define FONODE_H
 
+#include <vulkan/vulkan.hpp>
 #include <vector>
 #include <map>
 #include <QVulkanInstance>
@@ -10,11 +11,11 @@
 class foNode {
 public :
     
-    foNode* signalTo(foNode *waiter, VkPipelineStageFlags stage);
+    foNode* signalTo(foNode *waiter, vk::PipelineStageFlags stage);
     
 protected :
     
-    foNode* waitOn(foNode *signaler, VkPipelineStageFlags stage);
+    foNode* waitOn(foNode *signaler, vk::PipelineStageFlags stage);
     
     void prepare(Sync *semaphores);
     
@@ -23,13 +24,13 @@ protected :
     
     virtual bool isActive() {return true;};
     
-    bool prepareSignal(foNode *signaler, VkSemaphore sem);
-    bool prepareSignal(VkPipelineStageFlags stages, VkSemaphore sem);
+    bool prepareSignal(foNode *signaler, vk::Semaphore sem);
+    bool prepareSignal(vk::PipelineStageFlags stages, vk::Semaphore sem);
     
     std::vector<foNode*> waitNodes, signalNodes;
-    std::vector<VkSemaphore> waitSemaphores, signalSemaphores;
-    std::map<foNode*, VkPipelineStageFlags> waitNodeStages;
-    std::vector<VkPipelineStageFlags> waitStages;
+    std::vector<vk::Semaphore> waitSemaphores, signalSemaphores;
+    std::map<foNode*, vk::PipelineStageFlags> waitNodeStages;
+    std::vector<vk::PipelineStageFlags> waitStages;
     std::vector<uint32_t> semaphoreHandles; // handles to signalSemaphores in Sync.
     uint32_t waitCount, tempWaitCount = 0, signalCount;
     

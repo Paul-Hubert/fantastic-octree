@@ -1,6 +1,7 @@
 #ifndef WINDU_H
 #define WINDU_H
 
+#include <vulkan/vulkan.hpp>
 #include <QWindow>
 #include <QVulkanInstance>
 #include <QVulkanFunctions>

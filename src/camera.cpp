@@ -1,8 +1,8 @@
+#include "camera.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <iostream>
-
-#include "camera.h"
 
 void Camera::init(int width, int height) {
     speed = 0.1;

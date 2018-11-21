@@ -1,7 +1,7 @@
+#include "helper.h"
+
 #include <QLoggingCategory>
 #include <QFile>
-
-#include "helper.h"
 
 void foAssert(VkResult res) {
     if(res != VK_SUCCESS) {

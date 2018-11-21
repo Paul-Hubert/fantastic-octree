@@ -1,6 +1,7 @@
 #include "premcubes.h"
 
 #include <QVulkanDeviceFunctions>
+#include <vector>
 
 #include "windu.h"
 
@@ -17,177 +18,61 @@ void PreMCubes::init() {
     
     
     {
+        FoBuffer* lookup = win->resman.getBuffer(FO_RESOURCE_LOOKUP_BUFFER);
+        lookupView = win->device.logical.createBufferView(vk::BufferViewCreateInfo({}, lookup->buffer, vk::Format::eR8Sint, 0, lookup->size*sizeof(char)));
+    }
+    
+    {
         // CREATE DESCRIPTORS
-
+        
         
         // POOL
+        std::vector<vk::DescriptorPoolSize> size = {{vk::DescriptorType::eStorageBuffer, 3}, {vk::DescriptorType::eUniformTexelBuffer, 1}};
+        descriptorPool = win->device.logical.createDescriptorPool(vk::DescriptorPoolCreateInfo({}, 1, size.size(), size.data()));
         
-        VkDescriptorPoolSize size = {};
-        size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        size.descriptorCount = 4;
-        
-        VkDescriptorPoolCreateInfo dpinfo = {};
-        dpinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        dpinfo.poolSizeCount = 1;
-        dpinfo.pPoolSizes = &size;
-        dpinfo.maxSets = 1;
-        foAssert(win->vkd->vkCreateDescriptorPool(win->device.logical, &dpinfo, VK_NULL_HANDLE, &descriptorPool));
-
-
         // LAYOUT
+        std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+            {0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute},
+            {1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute},
+            {2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute},
+            {3, vk::DescriptorType::eUniformTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute}
+        };
+        descriptorSetLayout = win->device.logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, bindings.size(), bindings.data()));
 
-        VkDescriptorSetLayoutBinding slb[4];
-        slb[0] = {};
-        slb[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        slb[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        slb[0].descriptorCount = 1;
-        slb[0].binding = 0;
-        
-        slb[1] = {};
-        slb[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        slb[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        slb[1].descriptorCount = 1;
-        slb[1].binding = 1;
-        
-        slb[2] = {};
-        slb[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        slb[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        slb[2].descriptorCount = 1;
-        slb[2].binding = 2;
-        
-        slb[3] = {};
-        slb[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        slb[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        slb[3].descriptorCount = 1;
-        slb[3].binding = 3;
-        
-        VkDescriptorSetLayoutCreateInfo slinfo = {};
-        slinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        slinfo.bindingCount = 4;
-        slinfo.pBindings = &slb[0];
-        
-        foAssert(win->vkd->vkCreateDescriptorSetLayout(win->device.logical, &slinfo, VK_NULL_HANDLE, &descriptorSetLayout));
-
-        
-        
         // SET
-        
-        VkDescriptorSetAllocateInfo allocinfo = {};
-        allocinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocinfo.descriptorSetCount = 1;
-        allocinfo.pSetLayouts = &descriptorSetLayout;
-        allocinfo.descriptorPool = descriptorPool;
-        
-        foAssert(win->vkd->vkAllocateDescriptorSets(win->device.logical, &allocinfo, &descriptorSet));
-
-        
+        descriptorSet = win->device.logical.allocateDescriptorSets({descriptorPool, 1, &descriptorSetLayout})[0];
         
         
         // WRITE
-        
         FoBuffer* density = win->resman.getBuffer(FO_RESOURCE_DENSITY_BUFFER);
-        FoBuffer* cubes = win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER);
         FoBuffer* indirectDraw = win->resman.getBuffer(FO_RESOURCE_INDIRECT_DRAW);
-        FoBuffer* indirectDispatch = win->resman.getBuffer(FO_RESOURCE_INDIRECT_DISPATCH);
+        FoBuffer* vertex = win->resman.getBuffer(FO_RESOURCE_VERTEX_BUFFER);
         
-        VkDescriptorBufferInfo cubesInfo = {};
-        cubesInfo.buffer = cubes->buffer;
-        cubesInfo.offset = 0;
-        cubesInfo.range = cubes->size;         
+        vk::DescriptorBufferInfo densityInfo(density->buffer, 0, density->size);
+        vk::DescriptorBufferInfo drawInfo(indirectDraw->buffer, 0, indirectDraw->size);
+        vk::DescriptorBufferInfo vertexInfo(vertex->buffer, 0, vertex->size);
         
-        VkDescriptorBufferInfo densityInfo = {};
-        densityInfo.buffer = density->buffer;
-        densityInfo.offset = 0;
-        densityInfo.range = density->size;
-        
-        VkDescriptorBufferInfo drawInfo = {};
-        drawInfo.buffer = indirectDraw->buffer;
-        drawInfo.offset = 0;
-        drawInfo.range = indirectDraw->size;
-        
-        VkDescriptorBufferInfo dispatchInfo = {};
-        dispatchInfo.buffer = indirectDispatch->buffer;
-        dispatchInfo.offset = 0;
-        dispatchInfo.range = indirectDispatch->size;
-        
-        std::vector<VkWriteDescriptorSet> write(4);
-        write[0] = {};
-        write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[0].descriptorCount = 1;
-        write[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write[0].pBufferInfo = &cubesInfo;
-        write[0].dstSet = descriptorSet;
-        write[0].dstBinding = 0;
-        write[0].dstArrayElement = 0;
-        
-        write[1] = {};
-        write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[1].descriptorCount = 1;
-        write[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write[1].pBufferInfo = &densityInfo;
-        write[1].dstSet = descriptorSet;
-        write[1].dstBinding = 1;
-        write[1].dstArrayElement = 0;
-        
-        write[2] = {};
-        write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[2].descriptorCount = 1;
-        write[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write[2].pBufferInfo = &dispatchInfo;
-        write[2].dstSet = descriptorSet;
-        write[2].dstBinding = 2;
-        write[2].dstArrayElement = 0;
-        
-        write[3] = {};
-        write[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write[3].descriptorCount = 1;
-        write[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write[3].pBufferInfo = &drawInfo;
-        write[3].dstSet = descriptorSet;
-        write[3].dstBinding = 3;
-        write[3].dstArrayElement = 0;
-        
-        win->vkd->vkUpdateDescriptorSets(win->device.logical, write.size(), write.data(), 0, VK_NULL_HANDLE);
+        win->device.logical.updateDescriptorSets({
+            vk::WriteDescriptorSet(descriptorSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, 0, &vertexInfo, 0),
+            vk::WriteDescriptorSet(descriptorSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, 0, &densityInfo, 0),
+            vk::WriteDescriptorSet(descriptorSet, 2, 0, 1, vk::DescriptorType::eStorageBuffer, 0, &drawInfo, 0),
+            vk::WriteDescriptorSet(descriptorSet, 3, 0, 1, vk::DescriptorType::eUniformTexelBuffer, 0, 0, &lookupView)
+        }, {});
     }
     
     
     
     {
         // CREATE PIPELINE
+        pipelineLayout = win->device.logical.createPipelineLayout(vk::PipelineLayoutCreateInfo({}, 1, &descriptorSetLayout));
         
-        
-        VkPipelineLayoutCreateInfo plinfo = {};
-        plinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        plinfo.setLayoutCount = 1;
-        plinfo.pSetLayouts = &descriptorSetLayout;
-        
-        foAssert(win->vkd->vkCreatePipelineLayout(win->device.logical, &plinfo, VK_NULL_HANDLE, &pipelineLayout));
-
-        VkShaderModuleCreateInfo moduleInfo = {};
-        moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         QByteArray code = foLoad("src/shaders/premcubes.comp.spv");
-        moduleInfo.codeSize = code.size();
-        moduleInfo.pCode = reinterpret_cast<const uint32_t*>(code.constData());
+        VkShaderModule shaderModule = win->device.logical.createShaderModule(vk::ShaderModuleCreateInfo({}, code.size(), reinterpret_cast<const uint32_t*>(code.constData())));
         
+        pipeline = win->device.logical.createComputePipeline({}, vk::ComputePipelineCreateInfo({}, {{}, vk::ShaderStageFlagBits::eCompute, shaderModule, "main"}, pipelineLayout));
         
-        VkShaderModule shaderModule;
-        foAssert(win->vkd->vkCreateShaderModule(win->device.logical, &moduleInfo, VK_NULL_HANDLE, &shaderModule));
-
-        VkPipelineShaderStageCreateInfo shaderInfo = {};
-        shaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderInfo.module = shaderModule;
-        shaderInfo.pName = "main";
-        shaderInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+        win->device.logical.destroy(shaderModule);
         
-        VkComputePipelineCreateInfo pipelineInfo = {};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipelineInfo.layout = pipelineLayout;
-        pipelineInfo.stage = shaderInfo;
-        
-        foAssert(win->vkd->vkCreateComputePipelines(win->device.logical, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &pipeline));
-        
-        win->vkd->vkDestroyShaderModule(win->device.logical, shaderModule, VK_NULL_HANDLE);
-    
     }
     
     
@@ -210,12 +95,12 @@ void PreMCubes::reset() {
 
 PreMCubes::~PreMCubes() {
     
-    win->vkd->vkDestroyPipeline(win->device.logical, pipeline, VK_NULL_HANDLE);
+    win->device.logical.destroy(pipeline);
     
-    win->vkd->vkDestroyPipelineLayout(win->device.logical, pipelineLayout, VK_NULL_HANDLE);
+    win->device.logical.destroy(pipelineLayout);
     
-    win->vkd->vkDestroyDescriptorSetLayout(win->device.logical, descriptorSetLayout, VK_NULL_HANDLE);
+    win->device.logical.destroy(descriptorSetLayout);
     
-    win->vkd->vkDestroyDescriptorPool(win->device.logical, descriptorPool, VK_NULL_HANDLE);
+    win->device.logical.destroy(descriptorPool);
     
 }

@@ -1,6 +1,7 @@
 #ifndef SWAPCHAIN_H
 #define SWAPCHAIN_H
 
+#include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
 
 #include "fonode.h"

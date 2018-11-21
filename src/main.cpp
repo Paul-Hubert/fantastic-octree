@@ -1,5 +1,6 @@
 #include <QLoggingCategory>
 #include <QGuiApplication>
+#include <iostream>
 
 #include "windu.h"
 #include "helper.h"
@@ -14,8 +15,13 @@ int main(int argc, char *argv[]) {
     Windu* win = new Windu();
 
     win->showFullScreen();
-
-    int ret = app.exec();
+    
+    int ret;
+    try {
+        ret = app.exec();
+    } catch(vk::Error const &e) {
+        std::cout << e.what();
+    }
     delete(win);
     return ret;
 }

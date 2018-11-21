@@ -1,16 +1,16 @@
+#include "fonode.h"
+
 #include <iterator>
 #include <algorithm>
 #include <iostream>
 
-#include "fonode.h"
-
-foNode* foNode::waitOn(foNode *signaler, VkPipelineStageFlags stage) {
+foNode* foNode::waitOn(foNode *signaler, vk::PipelineStageFlags stage) {
     waitNodes.push_back(signaler);
     waitNodeStages[signaler] = stage;
     return this;
 }
 
-foNode* foNode::signalTo(foNode *waiter, VkPipelineStageFlags stage) {
+foNode* foNode::signalTo(foNode *waiter, vk::PipelineStageFlags stage) {
     signalNodes.push_back(waiter);
     waiter->waitOn(this, stage);
     return this;
@@ -35,7 +35,7 @@ void foNode::sync() {
     tempWaitCount = 0;
     
     for(uint32_t i = 0; i < signalNodes.size(); i++) {
-        VkSemaphore sem = semaphores->getSemaphore(semaphoreHandles[i]);
+        vk::Semaphore sem = semaphores->getSemaphore(semaphoreHandles[i]);
         if(signalNodes[i]->prepareSignal(this, sem)) {
             signalCount++;
             signalSemaphores.push_back(sem);
@@ -49,7 +49,7 @@ void foNode::postsync() {
     waitStages.clear();
     signalSemaphores.clear();
 }
-bool foNode::prepareSignal(foNode *signaler, VkSemaphore sem) {
+bool foNode::prepareSignal(foNode *signaler, vk::Semaphore sem) {
     if(isActive()) {
         tempWaitCount++;
         waitSemaphores.push_back(sem);
@@ -60,7 +60,7 @@ bool foNode::prepareSignal(foNode *signaler, VkSemaphore sem) {
     }
 }
 
-bool foNode::prepareSignal(VkPipelineStageFlags stages, VkSemaphore sem) {
+bool foNode::prepareSignal(vk::PipelineStageFlags stages, vk::Semaphore sem) {
     if(isActive()) {
         tempWaitCount++;
         waitSemaphores.push_back(sem);

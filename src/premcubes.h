@@ -1,6 +1,7 @@
 #ifndef PREMCUBES_H
 #define PREMCUBES_H
 
+#include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
 
 #include "helper.h"
@@ -17,12 +18,14 @@ public :
     void cleanup();
     void reset();
     
-    VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet;
+    vk::DescriptorPool descriptorPool;
+    vk::DescriptorSetLayout descriptorSetLayout;
+    vk::DescriptorSet descriptorSet;
     
-    VkPipelineLayout pipelineLayout;
-    VkPipeline pipeline;
+    vk::PipelineLayout pipelineLayout;
+    vk::Pipeline pipeline;
+    
+    vk::BufferView lookupView;
     
 private :
     

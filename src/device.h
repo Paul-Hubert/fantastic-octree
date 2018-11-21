@@ -1,6 +1,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
+#include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
 
 class Windu;
@@ -10,24 +11,24 @@ public :
     Device(Windu *win);
     void init();
     ~Device();
-    uint32_t getScore(QVulkanInstance *inst, VkPhysicalDevice &device);
-    bool getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, uint32_t *index);
+    uint32_t getScore(vk::PhysicalDevice &device);
+    bool getMemoryType(uint32_t typeBits, vk::MemoryPropertyFlags properties, uint32_t *index);
     
     Windu *win;
     
-    VkPhysicalDevice physical;
-    VkDevice logical;
-    VkQueue graphics, compute, transfer;
+    vk::PhysicalDevice physical;
+    vk::Device logical;
+    vk::Queue graphics, compute, transfer;
     uint32_t g_i = 0, c_i = 0, t_i = 0;
     
-    VkPhysicalDeviceFeatures requiredFeatures;
+    vk::PhysicalDeviceFeatures requiredFeatures;
     std::vector<const char*> requiredExtensions;
     
-    VkPhysicalDeviceProperties properties;
-    VkPhysicalDeviceFeatures features;
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    std::vector<VkQueueFamilyProperties> queueFamilies;
-    std::vector<VkExtensionProperties> extensions;
+    vk::PhysicalDeviceProperties properties;
+    vk::PhysicalDeviceFeatures features;
+    vk::PhysicalDeviceMemoryProperties memoryProperties;
+    std::vector<vk::QueueFamilyProperties> queueFamilies;
+    std::vector<vk::ExtensionProperties> extensions;
 };
 
 #endif

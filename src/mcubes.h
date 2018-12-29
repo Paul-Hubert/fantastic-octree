@@ -18,6 +18,8 @@ public :
     void cleanup();
     void reset();
     
+    void record(vk::CommandBuffer commandBuffer);
+    
     vk::DescriptorPool descriptorPool;
     vk::DescriptorSetLayout descriptorSetLayout;
     vk::DescriptorSet descriptorSet;

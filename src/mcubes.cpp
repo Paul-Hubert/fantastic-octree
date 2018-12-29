@@ -4,15 +4,26 @@
 #include <vector>
 
 #include "windu.h"
+#include "terrain.h"
 
 MCubes::MCubes(Windu* win) {
     this->win = win;
 }
 
-void MCubes::preinit() {
+void MCubes::record(vk::CommandBuffer commandBuffer) {
+    
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, {descriptorSet}, {});
+    
+    commandBuffer.dispatch(CHUNK_SIZE/8, CHUNK_SIZE/8, CHUNK_SIZE/8);
     
 }
 
+
+
+void MCubes::preinit() {
+    
+}
 
 void MCubes::init() {
     

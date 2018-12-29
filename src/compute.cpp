@@ -54,38 +54,24 @@ void Compute::setup() {
 
 
 bool Compute::isActive() {
-    return isSubmitting;
+    return true;
 }
 
 
 void Compute::render(uint32_t i) {
     
+    sync();
+        
+    std::vector<vk::Semaphore> wait(waitSemaphores);
     
+    win->device.logical.waitForFences({fence}, true, 1000000000000000L);
     
-    if(isSubmitting) {
-        
-        sync();
-        
-        std::vector<vk::Semaphore> wait(waitSemaphores);
-        
-        win->device.logical.waitForFences({fence}, true, 1000000000000000L);
-        
-        win->device.logical.resetFences({fence});
-        
-        win->device.compute.submit({ {waitCount, wait.data(), waitStages.data(), 1, &(computePool->buffer), signalCount, signalSemaphores.data()} }, fence);
-        
-        postsync();
-        
-        isSubmitting = false;
-        
-    }
+    win->device.logical.resetFences({fence});
     
+    win->device.compute.submit({ {waitCount, wait.data(), waitStages.data(), 1, &commandBuffer, signalCount, signalSemaphores.data()} }, fence);
     
-}
-
-
-void Compute::recorded() {
-    isSubmitting = true;
+    postsync();
+    
 }
 
 
@@ -120,26 +106,7 @@ void Compute::initRest() {
     
     {
         
-        computePool = new ComputePool(win);
-        
-        computePool->moveToThread(&thread);
-        connect(this, &Compute::record, computePool, &ComputePool::record);
-        connect(computePool, &ComputePool::recorded, this, &Compute::recorded);
-        connect(&thread, &QThread::finished, computePool, &QObject::deleteLater);
-        connect(&thread, &QThread::finished, &thread, &QThread::deleteLater);
-        thread.start();
-
         fence = win->device.logical.createFence({vk::FenceCreateFlagBits::eSignaled});
-        
-    }
-    
-    {
-        
-        transferPool = win->device.logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, win->device.t_i));
-        
-        transferCmd = (win->device.logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(transferPool, vk::CommandBufferLevel::ePrimary, 1)))[0];
-
-        transferSem = win->device.logical.createSemaphore({});
         
     }
     
@@ -153,44 +120,19 @@ void Compute::initRest() {
         
     }
     
-    
-    emit record(&mcubes);
-    
-}
-
-
-ComputePool::ComputePool(Windu* win) {
-    
-    this->win = win;
-    
-    pool = win->device.logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, win->device.c_i));
+    {
+        commandPool = win->device.logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, win->device.c_i));
+            
+        commandBuffer = (win->device.logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(commandPool, vk::CommandBufferLevel::ePrimary, 1)))[0];
         
-    buffer = (win->device.logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(pool, vk::CommandBufferLevel::ePrimary, 1)))[0];
+        commandBuffer.begin(vk::CommandBufferBeginInfo());
+        
+        mcubes.record(commandBuffer);
+        
+        commandBuffer.end();
+    }
     
 }
-
-void ComputePool::record(MCubes* mcubes) {
-    
-    buffer.begin(vk::CommandBufferBeginInfo());
-    
-    // PREMCUBES
-    buffer.bindPipeline(vk::PipelineBindPoint::eCompute, mcubes->pipeline);
-    buffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, mcubes->pipelineLayout, 0, {mcubes->descriptorSet}, {});
-    
-    buffer.dispatch(CHUNK_SIZE/8, CHUNK_SIZE/8, CHUNK_SIZE/8);
-    
-    buffer.end();
-    
-    emit recorded();
-    
-}
-
-ComputePool::~ComputePool() {
-    
-    win->device.logical.destroy(pool);
-    
-}
-
 
 
 void Compute::cleanup() {
@@ -207,13 +149,8 @@ Compute::Compute::~Compute() {
     
     cleanup();
     
-    win->device.logical.destroy(transferSem);
-    
-    win->device.logical.destroy(transferPool);
+    win->device.logical.destroy(commandPool);
     
     win->device.logical.destroy(fence);
-    
-    thread.quit();
-    thread.wait();
     
 }

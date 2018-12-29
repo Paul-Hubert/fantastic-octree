@@ -10,32 +10,10 @@
 
 class Windu;
 
-class ComputePool : public QObject {
-    
-    Q_OBJECT
-    
-public:
-    ComputePool(Windu* win);
-    ~ComputePool();
-    
-    vk::CommandPool pool;
-    vk::CommandBuffer buffer;
-
-private:
-    Windu* win;
-    
-public slots:
-    void record(MCubes* cubes);
-
-signals:
-    void recorded();
-
-};
-
 struct Chunk;
 
-class Compute : public QObject, public foNode {
-    Q_OBJECT
+class Compute : public foNode {
+    
 public :
     Compute(Windu *win);
     ~Compute();
@@ -51,29 +29,17 @@ public :
     void* startWriteDensity();
     void finishWriteDensity();
     
-public slots:
-    void recorded();
-
-signals:
-    void record(MCubes* mcubes);
-    
 private :
     
-    Windu* win;
-    
+    Windu *win;
     MCubes mcubes;
     
     void initRest();
-    QThread thread;
-    ComputePool* computePool;
-    
+    vk::CommandPool commandPool;
+    vk::CommandBuffer commandBuffer;
     vk::Fence fence;
     
-    vk::CommandPool transferPool;
-    vk::CommandBuffer transferCmd;
-    vk::Semaphore transferSem;
-    
-    bool isSubmitting = false;
+    uint32_t t = 0;
     
 };
 

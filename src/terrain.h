@@ -8,9 +8,8 @@
 #include <glm/glm.hpp>
 
 #define CHUNK_SIZE 64
-#define MAX_DEPTH 5
 
-#define MAX_CUBES 64*64*64
+#define MAX_CUBES 64*64*2
 
 class Compute;
 

@@ -22,7 +22,7 @@ private :
     uint32_t frame = 0;
     uint32_t Snum = 0;
     uint32_t Fnum = 0;
-    uint32_t width;
+    uint32_t width = 0;
     std::vector<vk::Semaphore> semaphores;
     std::vector<vk::Fence> fences;
     Windu *win;

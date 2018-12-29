@@ -18,14 +18,14 @@ public :
     void cleanup();
     void reset();
     
-    VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet;
+    vk::DescriptorPool descriptorPool;
+    vk::DescriptorSetLayout descriptorSetLayout;
+    vk::DescriptorSet descriptorSet;
     
-    VkPipelineLayout pipelineLayout;
-    VkPipeline pipeline;
+    vk::PipelineLayout pipelineLayout;
+    vk::Pipeline pipeline;
     
-    VkBufferView lookupView;
+    vk::BufferView lookupView;
     
 private :
     
@@ -33,3 +33,4 @@ private :
     
 };
 #endif
+

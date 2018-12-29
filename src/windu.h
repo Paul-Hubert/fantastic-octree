@@ -14,6 +14,7 @@
 #include "renderer.h"
 #include "sync.h"
 #include "camera.h"
+#include "transfer.h"
 #include "resources/resource_manager.h"
 
 class Terrain;
@@ -42,6 +43,7 @@ public :
 
     Device device;
     Swapchain swap;
+    Transfer transfer;
     Compute compute;
     Renderer renderer;
     Sync sync;
@@ -59,6 +61,10 @@ private :
 
     QElapsedTimer timer;
     qint64 lastNano = 0, lastHun = 0;
+
+public slots:
+    void rend();
+    
 };
 
 #endif

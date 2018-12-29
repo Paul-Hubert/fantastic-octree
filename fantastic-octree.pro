@@ -9,8 +9,8 @@ spirv.input = SHADERS
 spirv.variable_out = COMPILED_SHADERS
 spirv.CONFIG = target_predeps
 
-SOURCES = $$files(*.cpp, true)
-HEADERS = $$files(*.h, true)
+SOURCES = $$files(src/*.cpp, true)
+HEADERS = $$files(src/*.h, true)
 
 # install
 target.path = build

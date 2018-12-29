@@ -146,30 +146,9 @@ void Swapchain::reset() {
 // RUNTIME //
 /////////////
 
-uint32_t Swapchain::swap() {
-    sync();
+uint32_t Swapchain::acquire() {
     
-    if(current != 1000) {
-        VkPresentInfoKHR info = {};
-        info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        info.swapchainCount = 1;
-        info.pSwapchains = &swapchain;
-        info.pImageIndices = &current;
-        info.pResults = nullptr;
-        info.waitSemaphoreCount = waitCount;
-        std::vector<VkSemaphore> sems(waitSemaphores.begin(), waitSemaphores.end());
-        info.pWaitSemaphores = sems.data();
-        
-        // This will display the image
-        VkResult result = vkQueuePresentKHR(win->device.graphics, &info);
-        if(result != VK_SUCCESS) {
-            if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-                std::cout << "resize required ------------------------------------------------------------------------------------------------\n";
-                win->vkd->vkDeviceWaitIdle(win->device.logical);
-                win->start();
-            } else foAssert(result);
-        }
-    }
+    if(current == 1000) sync();
     
     VkResult result;
     do {
@@ -184,6 +163,33 @@ uint32_t Swapchain::swap() {
     postsync();
 
     return current;
+    
+}
+
+void Swapchain::present() {
+    
+    sync();
+    
+    VkPresentInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    info.swapchainCount = 1;
+    info.pSwapchains = &swapchain;
+    info.pImageIndices = &current;
+    info.pResults = nullptr;
+    info.waitSemaphoreCount = waitCount;
+    std::vector<VkSemaphore> sems(waitSemaphores.begin(), waitSemaphores.end());
+    info.pWaitSemaphores = sems.data();
+    
+    // This will display the image
+    VkResult result = vkQueuePresentKHR(win->device.graphics, &info);
+    if(result != VK_SUCCESS) {
+        if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            std::cout << "resize required ------------------------------------------------------------------------------------------------\n";
+            win->vkd->vkDeviceWaitIdle(win->device.logical);
+            win->start();
+        } else foAssert(result);
+    }
+    
 }
 
 

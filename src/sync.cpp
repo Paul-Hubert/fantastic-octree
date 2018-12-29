@@ -7,6 +7,7 @@
 
 Sync::Sync(Windu *win) {
     this->win = win;
+    std::cout << semaphores.size() << "\n";
 }
 
 void Sync::init() {
@@ -25,10 +26,9 @@ uint32_t Sync::makeSemaphore() {
     Snum++;
     if(semaphores.size() > 0) {
         std::cout << "Runtime creation of semaphores\n";
-        semaphores.resize(Snum*width);
         
         for(uint32_t i = 0; i < width; i++) {
-            semaphores[(Snum-1)*width+i] = win->device.logical.createSemaphore({});
+            semaphores.push_back(win->device.logical.createSemaphore({}));
         }
     }
     return Snum - 1;
@@ -41,8 +41,6 @@ uint32_t Sync::makeFence(bool signaled) {
     
     fences.resize(Fnum*width);
     
-    VkFenceCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     vk::FenceCreateFlags flags = signaled ? static_cast<vk::FenceCreateFlags>(0) : vk::FenceCreateFlagBits::eSignaled;
     for(uint32_t i = 0; i < width; i++) {
         fences[(Fnum-1)*width+i] = win->device.logical.createFence({flags});

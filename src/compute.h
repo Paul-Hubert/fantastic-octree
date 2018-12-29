@@ -3,16 +3,39 @@
 
 #include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
+#include <QThread>
 
 #include "fonode.h"
 #include "mcubes.h"
-#include "premcubes.h"
 
 class Windu;
 
+class ComputePool : public QObject {
+    
+    Q_OBJECT
+    
+public:
+    ComputePool(Windu* win);
+    ~ComputePool();
+    
+    vk::CommandPool pool;
+    vk::CommandBuffer buffer;
+
+private:
+    Windu* win;
+    
+public slots:
+    void record(MCubes* cubes);
+
+signals:
+    void recorded();
+
+};
+
 struct Chunk;
 
-class Compute : public foNode {
+class Compute : public QObject, public foNode {
+    Q_OBJECT
 public :
     Compute(Windu *win);
     ~Compute();
@@ -28,25 +51,29 @@ public :
     void* startWriteDensity();
     void finishWriteDensity();
     
-    void* startWriteCubes();
-    void finishWriteCubes(int num);
+public slots:
+    void recorded();
+
+signals:
+    void record(MCubes* mcubes);
     
 private :
     
-    Windu *win;
-    PreMCubes premcubes;
+    Windu* win;
+    
     MCubes mcubes;
     
     void initRest();
-    vk::CommandPool commandPool;
-    vk::CommandBuffer commandBuffer;
+    QThread thread;
+    ComputePool* computePool;
+    
     vk::Fence fence;
     
     vk::CommandPool transferPool;
     vk::CommandBuffer transferCmd;
     vk::Semaphore transferSem;
     
-    uint32_t t = 0;
+    bool isSubmitting = false;
     
 };
 

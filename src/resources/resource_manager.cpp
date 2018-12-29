@@ -66,13 +66,6 @@ void ResourceManager::init() {
     }
     
     {
-        initBuffer(FO_RESOURCE_CUBES_BUFFER,
-                   {win->device.c_i},
-                   vk::BufferUsageFlagBits::eStorageBuffer,
-                   vk::MemoryPropertyFlagBits::eDeviceLocal);
-    }
-    
-    {
         initBuffer(FO_RESOURCE_LOOKUP_BUFFER,
                    {win->device.c_i},
                    vk::BufferUsageFlagBits::eUniformTexelBuffer,
@@ -91,13 +84,6 @@ void ResourceManager::init() {
                    {win->device.c_i},
                    vk::BufferUsageFlagBits::eUniformBuffer,
                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    }
-    
-    {
-        initBuffer(FO_RESOURCE_INDIRECT_DISPATCH,
-                   {win->device.c_i},
-                   vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer,
-                   vk::MemoryPropertyFlagBits::eDeviceLocal);
     }
     
     {

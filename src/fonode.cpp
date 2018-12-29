@@ -13,8 +13,18 @@ foNode* foNode::waitOn(foNode *signaler, vk::PipelineStageFlags stage) {
 foNode* foNode::signalTo(foNode *waiter, vk::PipelineStageFlags stage) {
     signalNodes.push_back(waiter);
     waiter->waitOn(this, stage);
+    if(semaphores != nullptr) semaphoreHandles.push_back(semaphores->makeSemaphore());
     return this;
 }
+
+void foNode::stopSignal(foNode* waiter) {
+    signalNodes.erase(std::find(signalNodes.begin(), signalNodes.end(), waiter));
+}
+
+void foNode::stopWait(foNode* signaler) {
+    waitNodes.erase(std::find(waitNodes.begin(), waitNodes.end(), signaler));
+}
+
 
 void foNode::prepare(Sync *semaphores) {
     this->semaphores = semaphores;
@@ -49,6 +59,19 @@ void foNode::postsync() {
     waitStages.clear();
     signalSemaphores.clear();
 }
+
+void foNode::reset() {
+    for(foNode* signaler : waitNodes) {
+        signaler->stopSignal(this);
+    }
+    for(foNode* waiter : signalNodes) {
+        waiter->stopWait(this);
+    }
+    waitNodes.clear();
+    waitNodeStages.clear();
+    signalNodes.clear();
+}
+
 bool foNode::prepareSignal(foNode *signaler, vk::Semaphore sem) {
     if(isActive()) {
         tempWaitCount++;
@@ -65,6 +88,19 @@ bool foNode::prepareSignal(vk::PipelineStageFlags stages, vk::Semaphore sem) {
         tempWaitCount++;
         waitSemaphores.push_back(sem);
         waitStages.push_back(stages);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool foNode::prepareSignal(foNode* signaler, vk::PipelineStageFlags stages, vk::Semaphore sem) {
+    if(isActive()) {
+        tempWaitCount++;
+        waitSemaphores.push_back(sem);
+        waitStages.push_back(stages);
+        signaler->signalCount++;
+        signaler->signalSemaphores.push_back(sem);
         return true;
     } else {
         return false;

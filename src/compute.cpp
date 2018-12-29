@@ -11,13 +11,11 @@
 #include "terrain.h"
 #include "helper.h"
 
-Compute::Compute(Windu *win) : premcubes(win), mcubes(win) {
+Compute::Compute(Windu *win) : mcubes(win) {
     this->win = win;
 }
 
 void Compute::preinit() {
-    
-    win->resman.allocateResource(FO_RESOURCE_CUBES_BUFFER, MAX_CUBES * sizeof(Cube));
     
     win->resman.allocateResource(FO_RESOURCE_STAGING_DENSITY_BUFFER, CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
     
@@ -27,11 +25,7 @@ void Compute::preinit() {
     
     win->resman.allocateResource(FO_RESOURCE_LOOKUP_BUFFER, 4096*sizeof(char));
     
-    win->resman.allocateResource(FO_RESOURCE_INDIRECT_DISPATCH, sizeof(vk::DispatchIndirectCommand));
-    
     win->resman.allocateResource(FO_RESOURCE_INDIRECT_DRAW, sizeof(vk::DrawIndirectCommand));
-    
-    premcubes.preinit();
     
     mcubes.preinit();
     
@@ -39,8 +33,6 @@ void Compute::preinit() {
 
 
 void Compute::init() {
-    
-    premcubes.init();
     
     mcubes.init();
     
@@ -53,8 +45,6 @@ void Compute::init() {
 
 void Compute::setup() {
     
-    premcubes.setup();
-    
     mcubes.setup();
     
 }
@@ -63,33 +53,40 @@ void Compute::setup() {
 
 
 
-
-
-
-
 bool Compute::isActive() {
-    return true;
+    return isSubmitting;
 }
 
 
 void Compute::render(uint32_t i) {
-    sync();
-
-    t++;
     
-    std::vector<vk::Semaphore> wait(waitSemaphores);
     
-    win->device.logical.waitForFences({fence}, true, 1000000000000000L);
     
-    win->device.logical.resetFences({fence});
+    if(isSubmitting) {
+        
+        sync();
+        
+        std::vector<vk::Semaphore> wait(waitSemaphores);
+        
+        win->device.logical.waitForFences({fence}, true, 1000000000000000L);
+        
+        win->device.logical.resetFences({fence});
+        
+        win->device.compute.submit({ {waitCount, wait.data(), waitStages.data(), 1, &(computePool->buffer), signalCount, signalSemaphores.data()} }, fence);
+        
+        postsync();
+        
+        isSubmitting = false;
+        
+    }
     
-    win->device.compute.submit({ {waitCount, wait.data(), waitStages.data(), 1, &commandBuffer, signalCount, signalSemaphores.data()} }, fence);
-    
-    postsync();
     
 }
 
 
+void Compute::recorded() {
+    isSubmitting = true;
+}
 
 
 
@@ -108,31 +105,11 @@ void Compute::finishWriteDensity() {
     
     win->device.logical.unmapMemory(stagingDensity->memory);
     
-    transferCmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+    std::function<void(vk::CommandBuffer)>lambda = [&](vk::CommandBuffer buffer) {
+        buffer.copyBuffer(stagingDensity->buffer, density->buffer, {vk::BufferCopy(0,0,density->size)});
+    };
     
-    transferCmd.copyBuffer(stagingDensity->buffer, density->buffer, {vk::BufferCopy(0,0,density->size)});
-    
-    transferCmd.end();
-    
-    this->prepareSignal(vk::PipelineStageFlagBits::eComputeShader, transferSem);
-    
-    win->device.transfer.submit({{0, nullptr, nullptr, 1, &transferCmd, 1, &transferSem}}, nullptr);
-    
-}
-
-void * Compute::startWriteCubes() {
-    
-    FoBuffer* cubes = win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER);
-    
-    return win->device.logical.mapMemory(cubes->memory, cubes->offset, cubes->size);
-    
-}
-
-void Compute::finishWriteCubes(int num) {
-    
-    std::cout << num << std::endl;
-    
-    win->device.logical.unmapMemory(win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER)->memory);
+    win->transfer.record(lambda, this, vk::PipelineStageFlagBits::eComputeShader);
     
 }
 
@@ -143,14 +120,18 @@ void Compute::initRest() {
     
     {
         
-        commandPool = win->device.logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, win->device.c_i));
+        computePool = new ComputePool(win);
         
-        commandBuffer = (win->device.logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(commandPool, vk::CommandBufferLevel::ePrimary, 1)))[0];
+        computePool->moveToThread(&thread);
+        connect(this, &Compute::record, computePool, &ComputePool::record);
+        connect(computePool, &ComputePool::recorded, this, &Compute::recorded);
+        connect(&thread, &QThread::finished, computePool, &QObject::deleteLater);
+        connect(&thread, &QThread::finished, &thread, &QThread::deleteLater);
+        thread.start();
 
         fence = win->device.logical.createFence({vk::FenceCreateFlagBits::eSignaled});
         
     }
-    
     
     {
         
@@ -172,46 +153,47 @@ void Compute::initRest() {
         
     }
     
-    {
+    
+    emit record(&mcubes);
+    
+}
+
+
+ComputePool::ComputePool(Windu* win) {
+    
+    this->win = win;
+    
+    pool = win->device.logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, win->device.c_i));
         
-        FoBuffer* cubes = win->resman.getBuffer(FO_RESOURCE_CUBES_BUFFER);
-        FoBuffer* indirect = win->resman.getBuffer(FO_RESOURCE_INDIRECT_DISPATCH);
-        
-        commandBuffer.begin(vk::CommandBufferBeginInfo());
-        
-        // PREMCUBES
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, premcubes.pipeline);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, premcubes.pipelineLayout, 0, {premcubes.descriptorSet}, {});
-        
-        commandBuffer.dispatch(CHUNK_SIZE/8, CHUNK_SIZE/8, CHUNK_SIZE/8);
-        
-        /*
-        // CUBES MEMORY BARRIER
-        commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eAllCommands, {}, {},
-                            {vk::BufferMemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead, win->device.c_i, win->device.c_i, cubes->buffer, 0, cubes->size),
-                             vk::BufferMemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead, win->device.c_i, win->device.c_i, indirect->buffer, 0, indirect->size)
-                            }, {});
-        
-        // MCUBES
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, mcubes.pipeline);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, mcubes.pipelineLayout, 0, {mcubes.descriptorSet}, {});
-        
-        
-        commandBuffer.dispatchIndirect(indirect->buffer, 0);
-        */
-        
-        commandBuffer.end();
-        
-    }
+    buffer = (win->device.logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(pool, vk::CommandBufferLevel::ePrimary, 1)))[0];
+    
+}
+
+void ComputePool::record(MCubes* mcubes) {
+    
+    buffer.begin(vk::CommandBufferBeginInfo());
+    
+    // PREMCUBES
+    buffer.bindPipeline(vk::PipelineBindPoint::eCompute, mcubes->pipeline);
+    buffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, mcubes->pipelineLayout, 0, {mcubes->descriptorSet}, {});
+    
+    buffer.dispatch(CHUNK_SIZE/8, CHUNK_SIZE/8, CHUNK_SIZE/8);
+    
+    buffer.end();
+    
+    emit recorded();
+    
+}
+
+ComputePool::~ComputePool() {
+    
+    win->device.logical.destroy(pool);
     
 }
 
 
 
-
-
 void Compute::cleanup() {
-    premcubes.cleanup();
     mcubes.cleanup();
 }
 
@@ -231,6 +213,7 @@ Compute::Compute::~Compute() {
     
     win->device.logical.destroy(fence);
     
-    win->device.logical.destroy(commandPool);
+    thread.quit();
+    thread.wait();
     
 }

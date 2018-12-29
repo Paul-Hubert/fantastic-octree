@@ -8,7 +8,7 @@
 #include "helper.h"
 #include "terrain.h"
 
-Windu::Windu() : device(this), swap(this), compute(this), renderer(this), sync(this), resman(this), size(1024, 768) {
+Windu::Windu() : device(this), swap(this), transfer(this), compute(this), renderer(this), sync(this), resman(this), size(1024, 768) {
 
     setSurfaceType(SurfaceType::VulkanSurface);
 
@@ -46,12 +46,12 @@ void Windu::start() {
     swap.getSurface();
 
     if(!loaded) {
-        prepareGraph();
 
         vki = inst.functions();
         device.init();
         vkd = inst.deviceFunctions(device.logical);
         
+        prepareGraph();
     }
 
     swap.init();
@@ -61,6 +61,7 @@ void Windu::start() {
         // Specify resources to be allocated
         compute.preinit();
         renderer.preinit();
+        transfer.preinit();
         
         // Allocate memory
         resman.init();
@@ -72,6 +73,7 @@ void Windu::start() {
         
         terrain = new Terrain();
         terrain->init(&compute);
+        transfer.init();
         
         sync.init();
         loaded = true;
@@ -92,9 +94,10 @@ void Windu::reset() {
 
 void Windu::prepareGraph() {
 
-    compute.signalTo(&renderer, vk::PipelineStageFlagBits::eFragmentShader);
+    compute.signalTo(&renderer, vk::PipelineStageFlagBits::eDrawIndirect | vk::PipelineStageFlagBits::eVertexInput);
 
     swap.signalTo(&renderer, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+    
     renderer.signalTo(&swap, vk::PipelineStageFlagBits::eTopOfPipe);
 
 }
@@ -118,16 +121,20 @@ void Windu::render() {
         time = 0;
     }
 
-    i = swap.swap();
+    i = swap.acquire();
+    
+    transfer.render(i);
 
-
+    terrain->step(1);
+    
     compute.render(i);
-
 
     renderer.render(i);
 
+    swap.present();
+    
     sync.step();
-
+    
     requestUpdate();
 }
 

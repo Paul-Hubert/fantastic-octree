@@ -16,7 +16,8 @@ public :
     void getSurface();
     void reset();
     
-    uint32_t swap();
+    uint32_t acquire();
+    void present();
     
     Windu *win;
     

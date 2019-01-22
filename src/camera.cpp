@@ -5,7 +5,7 @@
 #include <iostream>
 
 void Camera::init(int width, int height) {
-    speed = 0.1;
+    speed = 0.05;
     pos = glm::vec3(0.);
     setup(width, height);
 }
@@ -29,7 +29,8 @@ Camera::~Camera() {
     
 }
 
-void Camera::step(qint64 dt) {
+void Camera::step(float dt) {
+    
     if(left) {
         pos.x += speed*sin(M_PI/2.0 + yangle)*dt;
         pos.z += speed*cos(M_PI/2.0 + yangle)*dt;
@@ -63,6 +64,14 @@ glm::mat4 Camera::getView() {
     view = glm::rotate(view, (float) xangle, glm::vec3(1.0f, 0.0f, 0.0f));
     return glm::inverse(view);
 }
+
+glm::mat4 Camera::getRotation() {
+    view = glm::mat4(1.0);
+    view = glm::rotate(view, (float) yangle, glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::rotate(view, (float) xangle, glm::vec3(1.0f, 0.0f, 0.0f));
+    return view;
+}
+
 
 glm::vec3 Camera::getPos() {
     return pos;

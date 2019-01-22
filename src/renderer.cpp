@@ -185,8 +185,8 @@ void Renderer::initPipeline() {
     
     // PIPELINE INFO
     
-    auto vertShaderCode = foLoad("src/shaders/rectangle.vert.spv");
-    auto fragShaderCode = foLoad("src/shaders/rectangle.frag.spv");
+    auto vertShaderCode = foLoad("src/shaders/rectangle.vert.glsl.spv");
+    auto fragShaderCode = foLoad("src/shaders/rectangle.frag.glsl.spv");
     
     VkShaderModuleCreateInfo moduleInfo = {};
     moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -398,7 +398,7 @@ void Renderer::setup() {
     renderPassInfo.renderArea.extent = win->swap.extent;
 
     VkClearValue clearColor = {};
-    clearColor.color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+    clearColor.color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
     

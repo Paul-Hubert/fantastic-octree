@@ -1,17 +1,29 @@
-#ifndef MCUBES_H
-#define MCUBES_H
+#ifndef RAYMARCHER_H
+#define RAYMARCHER_H
 
 #include <vulkan/vulkan.hpp>
 #include <QVulkanInstance>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "helper.h"
 
 class Windu;
 
-class MCubes {
+
+struct Ubo {
+    glm::mat4 viewinvproj;
+    glm::vec3 pos;
+    float pad;
+};
+
+class Raymarcher {
 public :
-    MCubes(Windu *win);
-    ~MCubes();
+    Raymarcher(Windu *win);
+    ~Raymarcher();
     void preinit();
     void init();
     void setup();

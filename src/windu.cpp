@@ -11,6 +11,8 @@
 Windu::Windu() : device(this), swap(this), transfer(this), compute(this), renderer(this), sync(this), resman(this), size(1024, 768) {
 
     setSurfaceType(SurfaceType::VulkanSurface);
+    
+    inst.setApiVersion(QVersionNumber(1, 1, 0));
 
     inst.setLayers(QByteArrayList()
                    << "VK_LAYER_GOOGLE_threading"

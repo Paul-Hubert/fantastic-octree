@@ -16,11 +16,12 @@ public:
     void setup(int width, int height);
     void cleanup();
     void reset(int width, int height);
-    void step(qint64 dt);
+    void step(float dt);
     ~Camera();
     glm::mat4 getViewProj();
     glm::mat4 getProj();
     glm::mat4 getView();
+    glm::mat4 getRotation();
     glm::vec3 getPos();
     void mouseMoveEvent(QMouseEvent *ev);
     void keyPressEvent(QKeyEvent *ev);

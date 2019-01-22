@@ -11,17 +11,14 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
 
     QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
-
+    
     Windu* win = new Windu();
 
     win->showFullScreen();
     
     int ret;
-    try {
-        ret = app.exec();
-    } catch(vk::Error const &e) {
-        std::cout << e.what();
-    }
+    ret = app.exec();
+    
     delete(win);
     return ret;
 }

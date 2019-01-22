@@ -1,6 +1,4 @@
-SHADERS = $$files(*.comp, true)
-SHADERS += $$files(*.frag, true)
-SHADERS += $$files(*.vert, true)
+SHADERS = $$files(./src/shaders/*.glsl, true)
 
 spirv.output = ${QMAKE_FILE_NAME}.spv
 spirv.commands = glslangValidator -V --target-env vulkan1.1 ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
@@ -20,11 +18,15 @@ DESTDIR = bin #Target file directory
 OBJECTS_DIR = build #Intermediate object files directory
 MOC_DIR = build #Intermediate moc files directory
 
+QMAKE_CXXFLAGS += -Wclass-memaccess
+
 CONFIG += debug
 QMAKE_EXTRA_COMPILERS += spirv
 
 CONFIG += vulkan
 CONFIG += exceptions
 LIBS += -lvulkan
+INCLUDEPATH += $$(VULKAN_SDK)/include
+INCLUDEPATH += /home/paulhubert/VulkanSDK/1.1.92.1/x86_64/include
 INCLUDEPATH += $$(VULKAN_SDK)/Include
 INCLUDEPATH += D:/Qt

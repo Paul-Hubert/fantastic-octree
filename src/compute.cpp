@@ -11,7 +11,7 @@
 #include "terrain.h"
 #include "helper.h"
 
-Compute::Compute(Windu *win) : mcubes(win) {
+Compute::Compute(Windu *win) : pass(win) {
     this->win = win;
 }
 
@@ -21,20 +21,20 @@ void Compute::preinit() {
     
     win->resman.allocateResource(FO_RESOURCE_DENSITY_BUFFER, CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE * sizeof(Value));
     
-    win->resman.allocateResource(FO_RESOURCE_VERTEX_BUFFER, MAX_CUBES * 15 * sizeof(Vertex));
+    win->resman.allocateResource(FO_RESOURCE_VERTEX_BUFFER, sizeof(Vertex) * 3 * 800 * 800); //  * MAX_CUBES * 15);
     
     win->resman.allocateResource(FO_RESOURCE_LOOKUP_BUFFER, 4096*sizeof(char));
     
     win->resman.allocateResource(FO_RESOURCE_INDIRECT_DRAW, sizeof(vk::DrawIndirectCommand));
     
-    mcubes.preinit();
+    pass.preinit();
     
 }
 
 
 void Compute::init() {
     
-    mcubes.init();
+    pass.init();
     
     initRest();
     
@@ -45,7 +45,7 @@ void Compute::init() {
 
 void Compute::setup() {
     
-    mcubes.setup();
+    pass.setup();
     
 }
 
@@ -67,6 +67,8 @@ void Compute::render(uint32_t i) {
     win->device.logical.waitForFences({fence}, true, 1000000000000000L);
     
     win->device.logical.resetFences({fence});
+    
+    pass.presubmit();
     
     win->device.compute.submit({ {waitCount, wait.data(), waitStages.data(), 1, &commandBuffer, signalCount, signalSemaphores.data()} }, fence);
     
@@ -127,7 +129,7 @@ void Compute::initRest() {
         
         commandBuffer.begin(vk::CommandBufferBeginInfo());
         
-        mcubes.record(commandBuffer);
+        pass.record(commandBuffer);
         
         commandBuffer.end();
     }
@@ -136,7 +138,7 @@ void Compute::initRest() {
 
 
 void Compute::cleanup() {
-    mcubes.cleanup();
+    pass.cleanup();
 }
 
 void Compute::reset() {

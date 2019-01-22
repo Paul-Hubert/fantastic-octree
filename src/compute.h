@@ -6,7 +6,7 @@
 #include <QThread>
 
 #include "fonode.h"
-#include "mcubes.h"
+#include "raymarcher.h"
 
 class Windu;
 
@@ -32,7 +32,7 @@ public :
 private :
     
     Windu *win;
-    MCubes mcubes;
+    Raymarcher pass;
     
     void initRest();
     vk::CommandPool commandPool;
